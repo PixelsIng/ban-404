@@ -1,0 +1,17 @@
+# /etc/ban_404.conf — configuration LOCALE par serveur (NON versionnee).
+# Surcharge les valeurs par defaut de ban_404.sh. Les mises a jour du script
+# ne toucheront jamais ce fichier.
+#
+# Installation : copier en /etc/ban_404.conf (chmod 600) et adapter.
+
+# URL "raw" du depot (sans slash final), utilisee par le self-updater.
+# Exemple : https://raw.githubusercontent.com/PixelsIng/ban-404/main
+REPO_RAW="https://raw.githubusercontent.com/PixelsIng/ban-404/main"
+
+# IPs a ne JAMAIS bannir (separees par | ), correspondance exacte.
+WHITELIST_IP="127.0.0.1"
+
+# --- Reglages optionnels (decommenter pour surcharger) ---
+#WINDOW=7200          # fenetre glissante en secondes (defaut 2h)
+#BAN_TIMEOUT=172800   # duree de ban en secondes (defaut 48h)
+#TAIL_LINES=50000     # lignes analysees par log (defaut 50000)
