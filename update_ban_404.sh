@@ -2,19 +2,181 @@
 # update_ban_404.sh — met a jour ban_404.sh ET update_ban_404.sh depuis le depot Git.
 # Telecharge -> valide (shebang + syntaxe) -> bascule atomique. Jamais "curl | bash".
 # L'updater se met aussi a jour lui-meme (self-update) : plus besoin de repasser sur
-# les serveurs pour propager une evolution de l'updater.
+# les serveurs pour propager une evolution de l'updater. Il ajoute aussi BAN404_LANG
+# a la conf si elle est absente (langue heritee du shell/systeme, sinon en).
 set -u
 
+UPDATER_VERSION="1.0.0"
 CONF_FILE="/etc/ban_404.conf"
 TARGET="/usr/local/sbin/ban_404.sh"
 SELF="/usr/local/sbin/update_ban_404.sh"
 LOG="/var/log/ban_404.log"
 
+# --- i18n : messages multilingues (en, fr, de, es, it). Voir ban_404.sh pour le mecanisme. ---
+declare -A T_EN T_FR T_DE T_ES T_IT
+
+T_EN[version.line]="update_ban_404.sh version %s"
+T_FR[version.line]="update_ban_404.sh version %s"
+T_DE[version.line]="update_ban_404.sh version %s"
+T_ES[version.line]="update_ban_404.sh version %s"
+T_IT[version.line]="update_ban_404.sh version %s"
+
+T_EN[help.usage]="Usage: %s [OPTIONS]"
+T_FR[help.usage]="Usage : %s [OPTIONS]"
+T_DE[help.usage]="Aufruf: %s [OPTIONEN]"
+T_ES[help.usage]="Uso: %s [OPCIONES]"
+T_IT[help.usage]="Uso: %s [OPZIONI]"
+
+T_EN[help.options_header]="Available options:"
+T_FR[help.options_header]="Options disponibles :"
+T_DE[help.options_header]="Verfügbare Optionen:"
+T_ES[help.options_header]="Opciones disponibles:"
+T_IT[help.options_header]="Opzioni disponibili:"
+
+T_EN[help.version]="  --version        Show the version and exit."
+T_FR[help.version]="  --version        Afficher la version et quitter."
+T_DE[help.version]="  --version        Version anzeigen und beenden."
+T_ES[help.version]="  --version        Mostrar la versión y salir."
+T_IT[help.version]="  --version        Mostrare la versione e uscire."
+
+T_EN[help.help]="  --help, -h       Show this help message."
+T_FR[help.help]="  --help, -h       Afficher ce message d'aide."
+T_DE[help.help]="  --help, -h       Diese Hilfemeldung anzeigen."
+T_ES[help.help]="  --help, -h       Mostrar este mensaje de ayuda."
+T_IT[help.help]="  --help, -h       Mostrare questo messaggio di aiuto."
+
+T_EN[err.unknown_opt]="Unknown option: %s. Use --help."
+T_FR[err.unknown_opt]="Option inconnue : %s. Utilisez --help."
+T_DE[err.unknown_opt]="Unbekannte Option: %s. Verwenden Sie --help."
+T_ES[err.unknown_opt]="Opción desconocida: %s. Use --help."
+T_IT[err.unknown_opt]="Opzione sconosciuta: %s. Usare --help."
+
+T_EN[upd.repo_undef]="REPO_RAW not set in %s — update skipped."
+T_FR[upd.repo_undef]="REPO_RAW non défini dans %s — MAJ ignorée."
+T_DE[upd.repo_undef]="REPO_RAW nicht in %s gesetzt — Update übersprungen."
+T_ES[upd.repo_undef]="REPO_RAW no definido en %s — actualización omitida."
+T_IT[upd.repo_undef]="REPO_RAW non definito in %s — aggiornamento ignorato."
+
+T_EN[upd.lang_added]="BAN404_LANG added to %s (=%s)."
+T_FR[upd.lang_added]="BAN404_LANG ajouté à %s (=%s)."
+T_DE[upd.lang_added]="BAN404_LANG zu %s hinzugefügt (=%s)."
+T_ES[upd.lang_added]="BAN404_LANG añadido a %s (=%s)."
+T_IT[upd.lang_added]="BAN404_LANG aggiunto a %s (=%s)."
+
+T_EN[upd.dl_fail]="%s: download failed (%s)"
+T_FR[upd.dl_fail]="%s : téléchargement KO (%s)"
+T_DE[upd.dl_fail]="%s: Download fehlgeschlagen (%s)"
+T_ES[upd.dl_fail]="%s: descarga fallida (%s)"
+T_IT[upd.dl_fail]="%s: download non riuscito (%s)"
+
+T_EN[upd.empty]="%s: empty file — aborting"
+T_FR[upd.empty]="%s : fichier vide — abandon"
+T_DE[upd.empty]="%s: leere Datei — Abbruch"
+T_ES[upd.empty]="%s: archivo vacío — cancelando"
+T_IT[upd.empty]="%s: file vuoto — annullamento"
+
+T_EN[upd.shebang]="%s: unexpected shebang — aborting"
+T_FR[upd.shebang]="%s : shebang inattendu — abandon"
+T_DE[upd.shebang]="%s: unerwarteter Shebang — Abbruch"
+T_ES[upd.shebang]="%s: shebang inesperado — cancelando"
+T_IT[upd.shebang]="%s: shebang imprevisto — annullamento"
+
+T_EN[upd.syntax]="%s: invalid syntax — aborting (nothing replaced)"
+T_FR[upd.syntax]="%s : syntaxe invalide — abandon (rien remplacé)"
+T_DE[upd.syntax]="%s: ungültige Syntax — Abbruch (nichts ersetzt)"
+T_ES[upd.syntax]="%s: sintaxis no válida — cancelando (no se reemplazó nada)"
+T_IT[upd.syntax]="%s: sintassi non valida — annullamento (nulla sostituito)"
+
+T_EN[upd.mktemp_fail]="%s: target mktemp failed"
+T_FR[upd.mktemp_fail]="%s : mktemp cible KO"
+T_DE[upd.mktemp_fail]="%s: mktemp für Ziel fehlgeschlagen"
+T_ES[upd.mktemp_fail]="%s: mktemp de destino fallido"
+T_IT[upd.mktemp_fail]="%s: mktemp destinazione non riuscito"
+
+T_EN[upd.swap_fail]="%s: switch failed"
+T_FR[upd.swap_fail]="%s : bascule KO"
+T_DE[upd.swap_fail]="%s: Umschaltung fehlgeschlagen"
+T_ES[upd.swap_fail]="%s: cambio fallido"
+T_IT[upd.swap_fail]="%s: commutazione non riuscita"
+
+T_EN[upd.prep_fail]="%s: preparation failed"
+T_FR[upd.prep_fail]="%s : préparation KO"
+T_DE[upd.prep_fail]="%s: Vorbereitung fehlgeschlagen"
+T_ES[upd.prep_fail]="%s: preparación fallida"
+T_IT[upd.prep_fail]="%s: preparazione non riuscita"
+
+T_EN[upd.updated_ver]="%s updated (version %s)."
+T_FR[upd.updated_ver]="%s mis à jour (version %s)."
+T_DE[upd.updated_ver]="%s aktualisiert (Version %s)."
+T_ES[upd.updated_ver]="%s actualizado (versión %s)."
+T_IT[upd.updated_ver]="%s aggiornato (versione %s)."
+
+T_EN[upd.updated]="%s updated."
+T_FR[upd.updated]="%s mis à jour."
+T_DE[upd.updated]="%s aktualisiert."
+T_ES[upd.updated]="%s actualizado."
+T_IT[upd.updated]="%s aggiornato."
+
+# Detection de la langue : locale du shell (ou /etc/default/locale en repli pour cron).
+detect_lang() {
+    local l="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+    if [ -z "$l" ] && [ -r /etc/default/locale ]; then
+        l=$(. /etc/default/locale 2>/dev/null; printf '%s' "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}")
+    fi
+    l="${l%%.*}"; l="${l%%_*}"; l="${l,,}"
+    case "$l" in en|fr|de|es|it) printf '%s' "$l" ;; *) printf '%s' en ;; esac
+}
+
 log(){ printf '%s [update] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG" 2>/dev/null; }
 
 [ -f "$CONF_FILE" ] && . "$CONF_FILE"
+
+# Resolution de la langue : conf > locale du shell > en. Puis validation.
+: "${BAN404_LANG:=$(detect_lang)}"
+BAN404_LANG="${BAN404_LANG,,}"
+case "$BAN404_LANG" in en|fr|de|es|it) ;; *) BAN404_LANG=en ;; esac
+
+# t <cle> [args...] : renvoie la traduction (\n du format interpretes) + saut de ligne final.
+t() {
+    local key="$1"; shift
+    local ref="T_${BAN404_LANG^^}[$key]"
+    local fmt="${!ref-}"
+    [ -z "$fmt" ] && fmt="${T_EN[$key]-}"
+    [ -z "$fmt" ] && fmt="$key"
+    # '--' : empeche printf d'interpreter un format commencant par '-' comme une option.
+    # shellcheck disable=SC2059
+    printf -- "$fmt\n" "$@"
+}
+
+show_help() {
+    t version.line "$UPDATER_VERSION"
+    t help.usage "$0"
+    echo ""
+    t help.options_header
+    t help.version
+    t help.help
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version) t version.line "$UPDATER_VERSION"; exit 0 ;;
+        --help|-h) show_help ;;
+        *) t err.unknown_opt "$1"; exit 1 ;;
+    esac
+done
+
 : "${REPO_RAW:=}"
-[ -z "$REPO_RAW" ] && { log "REPO_RAW non defini dans $CONF_FILE — MAJ ignoree."; exit 0; }
+[ -z "$REPO_RAW" ] && { log "$(t upd.repo_undef "$CONF_FILE")"; exit 0; }
+
+# --- Migration conf : ajoute BAN404_LANG s'il manque (idempotent) ---
+if [ -f "$CONF_FILE" ] && ! grep -q '^BAN404_LANG=' "$CONF_FILE"; then
+    _dl=$(detect_lang)
+    {
+        printf '\n# Langue des messages : en (defaut) | fr | de | es | it\n'
+        printf 'BAN404_LANG="%s"\n' "$_dl"
+    } >> "$CONF_FILE" && log "$(t upd.lang_added "$CONF_FILE" "$_dl")"
+fi
 
 # Telecharge $1 dans un fichier temporaire dont le chemin est emis sur stdout.
 # Retourne != 0 (et n'emet rien) en cas d'echec.
@@ -39,30 +201,30 @@ update_file(){
     local name="$1" target="$2" label="$3" url tmp dir new ver
     url="$REPO_RAW/$name"
 
-    tmp=$(download "$url") || { log "$label : telechargement KO ($url)"; return 2; }
+    tmp=$(download "$url") || { log "$(t upd.dl_fail "$label" "$url")"; return 2; }
 
     # Validations avant toute bascule
-    [ -s "$tmp" ] || { log "$label : fichier vide — abandon"; rm -f "$tmp"; return 2; }
-    head -n1 "$tmp" | grep -q '^#!/bin/bash' || { log "$label : shebang inattendu — abandon"; rm -f "$tmp"; return 2; }
-    bash -n "$tmp" 2>/dev/null || { log "$label : syntaxe invalide — abandon (rien remplace)"; rm -f "$tmp"; return 2; }
+    [ -s "$tmp" ] || { log "$(t upd.empty "$label")"; rm -f "$tmp"; return 2; }
+    head -n1 "$tmp" | grep -q '^#!/bin/bash' || { log "$(t upd.shebang "$label")"; rm -f "$tmp"; return 2; }
+    bash -n "$tmp" 2>/dev/null || { log "$(t upd.syntax "$label")"; rm -f "$tmp"; return 2; }
 
     # Deja a jour ?
     if [ -f "$target" ] && cmp -s "$tmp" "$target"; then rm -f "$tmp"; return 1; fi
 
     # Bascule atomique (copie dans le meme repertoire que la cible puis mv), avec sauvegarde
     dir=$(dirname "$target")
-    new=$(mktemp "$dir/.ban_404.XXXXXX") || { log "$label : mktemp cible KO"; rm -f "$tmp"; return 2; }
+    new=$(mktemp "$dir/.ban_404.XXXXXX") || { log "$(t upd.mktemp_fail "$label")"; rm -f "$tmp"; return 2; }
     if cp "$tmp" "$new" && chmod 755 "$new"; then
         [ -f "$target" ] && cp -a "$target" "${target}.bak" 2>/dev/null || true
         if mv -f "$new" "$target"; then
             rm -f "$tmp"
-            ver=$(grep -m1 '^BAN404_VERSION=' "$target" | cut -d'"' -f2)
-            log "$label mis a jour${ver:+ (version $ver)}."
+            ver=$(grep -m1 -E '^(BAN404_VERSION|UPDATER_VERSION)=' "$target" | cut -d'"' -f2)
+            if [ -n "$ver" ]; then log "$(t upd.updated_ver "$label" "$ver")"; else log "$(t upd.updated "$label")"; fi
             return 0
         fi
-        rm -f "$new" "$tmp"; log "$label : bascule KO"; return 2
+        rm -f "$new" "$tmp"; log "$(t upd.swap_fail "$label")"; return 2
     fi
-    rm -f "$new" "$tmp"; log "$label : preparation KO"; return 2
+    rm -f "$new" "$tmp"; log "$(t upd.prep_fail "$label")"; return 2
 }
 
 # 1) Le moteur de detection/ban.

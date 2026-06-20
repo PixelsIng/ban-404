@@ -6,6 +6,7 @@ Détection sur fenêtre glissante, honeypots (`.env`, `wp-config.php`…),
 exclusion du bruit (assets, favicon, robots.txt…), crawlers légitimes épargnés
 par **FCrDNS** (reverse DNS confirmé). Persistance au reboot via
 `ipset-persistent`. Mise à jour centralisée par auto-pull (`cron.daily`).
+Messages **multilingues** (en, fr, de, es, it).
 
 ## Contenu du dépôt
 
@@ -13,7 +14,7 @@ par **FCrDNS** (reverse DNS confirmé). Persistance au reboot via
 |-------------------------|------|
 | `ban_404.sh`            | Le script de ban (déployé en `/usr/local/sbin/ban_404.sh`, lancé par `cron.hourly`). |
 | `install_ban_404.sh`    | Installeur clé en main (paquets, cron, persistance, migration, décommissionnement). |
-| `update_ban_404.sh`     | Self-updater : télécharge → valide → bascule le script (lancé par `cron.daily`). |
+| `update_ban_404.sh`     | Self-updater : télécharge → valide → bascule le moteur **et lui-même** (lancé par `cron.daily`). |
 | `ban_404.conf.example`  | Modèle de config locale par serveur. |
 
 La **config par serveur** (whitelist, `REPO_RAW`, réglages) vit dans
@@ -36,6 +37,9 @@ sudo bash /tmp/install_ban_404.sh
 # Adapter la whitelist de CE serveur
 sudo nano /etc/ban_404.conf      # WHITELIST_IP="127.0.0.1|TES.IP.FIXES"
 
+# (Optionnel) changer la langue des messages : en | fr | de | es | it
+sudo /usr/local/sbin/ban_404.sh --lang fr
+
 # Vérifier sans rien bannir
 sudo /usr/local/sbin/ban_404.sh --dry-run --verbose
 ```
@@ -53,19 +57,26 @@ commit cassé n'est jamais déployé. Forcer tout de suite :
 sudo /usr/local/sbin/update_ban_404.sh
 ```
 
-> Le self-updater met à jour **`ban_404.sh` uniquement**. Si tu modifies
-> l'installeur, l'updater lui-même ou la structure cron, relance l'installeur
-> sur les serveurs (rare).
+> Le self-updater met à jour **`ban_404.sh` ET lui-même** (`update_ban_404.sh`).
+> Si tu modifies l'installeur ou la structure cron, relance l'installeur sur les
+> serveurs (rare).
 
 ## Réglages (`/etc/ban_404.conf`)
 
-| Variable        | Défaut   | Rôle |
-|-----------------|----------|------|
-| `WHITELIST_IP`  | `127.0.0.1` | IP jamais bannies (séparées par `|`, correspondance exacte). |
-| `WINDOW`        | `7200`   | Fenêtre glissante (s) sur laquelle on compte les 404. |
-| `BAN_TIMEOUT`   | `172800` | Durée du ban (s). |
-| `TAIL_LINES`    | `50000`  | Lignes analysées par log (borne le coût sur gros sites). |
-| `REPO_RAW`      | —        | URL *raw* du dépôt (utilisée par le self-updater). |
+| Variable          | Défaut      | Rôle |
+|-------------------|-------------|------|
+| `BAN404_LANG`     | (auto)      | Langue des messages : `en` (défaut), `fr`, `de`, `es`, `it`. Auto-détectée depuis la locale du shell/système ; ajoutée par l'updater si absente. Modifiable via `ban_404.sh --lang <code>`. |
+| `WHITELIST_IP`    | `127.0.0.1` | IP jamais bannies (séparées par `\|`, correspondance exacte). |
+| `WINDOW`          | `7200`      | Fenêtre glissante (s) sur laquelle on compte les 404. |
+| `BAN_TIMEOUT`     | `172800`    | Durée du ban (s). |
+| `TAIL_LINES`      | `50000`     | Lignes analysées par log (borne le coût sur gros sites). |
+| `BAN_THRESHOLD`   | `10`        | Ban si le score dépasse ce seuil dans la fenêtre. |
+| `HONEYPOT_SCORE`  | `100`       | Score ajouté par hit honeypot (≥ ce score ⇒ ban immédiat). |
+| `REPO_RAW`        | —           | URL *raw* du dépôt (utilisée par le self-updater). |
+
+Réglages avancés (regex `awk`, à ne surcharger qu'en connaissance de cause) :
+`HONEYPOT_PATTERN` (motifs honeypot) et `NOISE_PATTERN` (bruit ignoré). Voir
+`ban_404.conf.example`.
 
 ## Prérequis
 

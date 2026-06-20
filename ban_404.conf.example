@@ -11,7 +11,18 @@ REPO_RAW="https://raw.githubusercontent.com/PixelsIng/ban-404/main"
 # IPs a ne JAMAIS bannir (separees par | ), correspondance exacte.
 WHITELIST_IP="127.0.0.1"
 
+# Langue des messages (sorties, logs, --help) : en (defaut) | fr | de | es | it.
+# Si absente, le self-updater l'ajoute (langue heritee du shell/systeme, sinon en).
+# Modifiable a la volee :  ban_404.sh --lang de
+BAN404_LANG="en"
+
 # --- Reglages optionnels (decommenter pour surcharger) ---
 #WINDOW=7200          # fenetre glissante en secondes (defaut 2h)
 #BAN_TIMEOUT=172800   # duree de ban en secondes (defaut 48h)
 #TAIL_LINES=50000     # lignes analysees par log (defaut 50000)
+#BAN_THRESHOLD=10     # ban si le score depasse ce seuil dans la fenetre
+#HONEYPOT_SCORE=100   # score par hit honeypot (>= ce score => ban immediat)
+
+# --- Motifs de detection (regex awk) — AVANCE : ne surcharger qu'en connaissance de cause ---
+#HONEYPOT_PATTERN='\.env|wp-config\.php|phpmyadmin|config\.json|setup\.php|actuator|xmlrpc\.php'
+#NOISE_PATTERN='\.(jpg|jpeg|png|gif|webp|ico|css|js|svg|woff2?|map)$|apple-touch-icon|favicon|browserconfig\.xml|mstile|autodiscover\.xml|sitemap\.xml|robots\.txt|ads\.txt|\.well-known/(security\.txt|pki-validation)'

@@ -1,0 +1,55 @@
+#!/bin/bash
+# check.sh — garde-fou (local / pre-commit / CI). A lancer depuis la racine du depot.
+#   1) bash -n sur les 3 scripts (+ check.sh)
+#   2) synchro du heredoc UPD_EOF de l'installeur avec update_ban_404.sh (zero divergence)
+#   3) shellcheck si disponible (bloque uniquement sur les erreurs, severite < error tolerée)
+# Sortie != 0 au moindre echec.
+#
+# Pre-commit : creer .git/hooks/pre-commit contenant :  #!/bin/sh \n exec bash check.sh
+set -u
+
+SCRIPTS="ban_404.sh update_ban_404.sh install_ban_404.sh check.sh"
+
+# Doit tourner a la racine du depot (les chemins sont relatifs).
+if [ ! -f ban_404.sh ] || [ ! -f install_ban_404.sh ]; then
+    echo "check.sh : a lancer depuis la racine du depot ban-404." >&2
+    exit 1
+fi
+
+fail=0
+
+echo "== bash -n =="
+for f in $SCRIPTS; do
+    if bash -n "$f" 2>/dev/null; then
+        echo "  OK  $f"
+    else
+        echo "  KO  $f :"; bash -n "$f"; fail=1
+    fi
+done
+
+echo "== synchro heredoc UPD_EOF <-> update_ban_404.sh =="
+extract_updeof() {
+    awk '/^cat > "\$UPDATER_PATH" <<.UPD_EOF.$/{f=1;next} /^UPD_EOF$/{f=0} f' install_ban_404.sh
+}
+if diff <(extract_updeof) update_ban_404.sh >/dev/null; then
+    echo "  OK  identiques"
+else
+    echo "  KO  le heredoc UPD_EOF diverge de update_ban_404.sh :"
+    diff <(extract_updeof) update_ban_404.sh
+    fail=1
+fi
+
+echo "== shellcheck =="
+if command -v shellcheck >/dev/null 2>&1; then
+    # Affichage complet (informatif, non bloquant)...
+    # shellcheck disable=SC2086
+    shellcheck $SCRIPTS || true
+    # ...mais on ne bloque que sur la severite "error".
+    # shellcheck disable=SC2086
+    shellcheck -S error $SCRIPTS || { echo "  KO  shellcheck a releve des ERREURS"; fail=1; }
+else
+    echo "  (shellcheck absent — ignore)"
+fi
+
+if [ "$fail" -eq 0 ]; then echo "== TOUT OK =="; else echo "== ECHEC =="; fi
+exit "$fail"
