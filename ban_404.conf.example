@@ -31,7 +31,7 @@ WHITELIST_IP="127.0.0.1"
 #EXCLUDE_VHOSTS="staging.exemple.com|interne.exemple.com"
 
 # --- Notifications (vides => desactivees ; messages dans la langue BAN404_LANG) ---
-#WEBHOOK_URL=""        # POST JSON des nouveaux bans (Slack/Discord/Teams/n8n...)
+#WEBHOOK_URL=""        # POST JSON des nouveaux bans (Slack/Discord/Teams/n8n/Google Chat...)
 #NOTIFY_EMAIL=""       # e-mail des nouveaux bans (necessite un MTA : mail/sendmail)
 #NOTIFY_FROM=""        # expediteur e-mail (optionnel)
 #NOTIFY_MIN_BANS=1     # ne notifier que si AU MOINS N nouveaux bans dans le run

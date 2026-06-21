@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.4.2"
+BAN404_VERSION="1.4.3"
 
 # Configuration (valeurs par defaut ; surchargees par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -302,6 +302,102 @@ T_DE[help.summary]="  --summary        Tägliche Zusammenfassung über den konfi
 T_ES[help.summary]="  --summary        Enviar el resumen diario por el canal configurado (opt-in)."
 T_IT[help.summary]="  --summary        Inviare il riepilogo giornaliero tramite il canale configurato (opt-in)."
 
+T_EN[help.checknotif]="  --check-notification [email|webhook|all]  Send a test notification and report the result (default: all)."
+T_FR[help.checknotif]="  --check-notification [email|webhook|all]  Envoyer une notification de test et afficher le résultat (défaut : all)."
+T_DE[help.checknotif]="  --check-notification [email|webhook|all]  Eine Testbenachrichtigung senden und das Ergebnis anzeigen (Standard: all)."
+T_ES[help.checknotif]="  --check-notification [email|webhook|all]  Enviar una notificación de prueba y mostrar el resultado (por defecto: all)."
+T_IT[help.checknotif]="  --check-notification [email|webhook|all]  Inviare una notifica di prova e mostrare il risultato (predefinito: all)."
+
+T_EN[check.header]="=[ ban-404 notification test ]="
+T_FR[check.header]="=[ Test des notifications ban-404 ]="
+T_DE[check.header]="=[ ban-404 Benachrichtigungstest ]="
+T_ES[check.header]="=[ Prueba de notificaciones ban-404 ]="
+T_IT[check.header]="=[ Test delle notifiche ban-404 ]="
+
+T_EN[check.subject]="ban-404 notification test on %s"
+T_FR[check.subject]="Test de notification ban-404 sur %s"
+T_DE[check.subject]="ban-404 Benachrichtigungstest auf %s"
+T_ES[check.subject]="Prueba de notificación ban-404 en %s"
+T_IT[check.subject]="Test di notifica ban-404 su %s"
+
+T_EN[check.body]="Test notification from ban-404 on %s. If you receive this, the channel works."
+T_FR[check.body]="Notification de test de ban-404 sur %s. Si vous recevez ceci, le canal fonctionne."
+T_DE[check.body]="Testbenachrichtigung von ban-404 auf %s. Wenn Sie dies erhalten, funktioniert der Kanal."
+T_ES[check.body]="Notificación de prueba de ban-404 en %s. Si recibe esto, el canal funciona."
+T_IT[check.body]="Notifica di prova da ban-404 su %s. Se ricevi questo, il canale funziona."
+
+T_EN[check.webhook_off]="Webhook: not configured (WEBHOOK_URL empty)."
+T_FR[check.webhook_off]="Webhook : non configuré (WEBHOOK_URL vide)."
+T_DE[check.webhook_off]="Webhook: nicht konfiguriert (WEBHOOK_URL leer)."
+T_ES[check.webhook_off]="Webhook: no configurado (WEBHOOK_URL vacío)."
+T_IT[check.webhook_off]="Webhook: non configurato (WEBHOOK_URL vuoto)."
+
+T_EN[check.webhook_nocurl]="Webhook: curl not available."
+T_FR[check.webhook_nocurl]="Webhook : curl indisponible."
+T_DE[check.webhook_nocurl]="Webhook: curl nicht verfügbar."
+T_ES[check.webhook_nocurl]="Webhook: curl no disponible."
+T_IT[check.webhook_nocurl]="Webhook: curl non disponibile."
+
+T_EN[check.webhook_ok]="Webhook: OK (HTTP %s)."
+T_FR[check.webhook_ok]="Webhook : OK (HTTP %s)."
+T_DE[check.webhook_ok]="Webhook: OK (HTTP %s)."
+T_ES[check.webhook_ok]="Webhook: OK (HTTP %s)."
+T_IT[check.webhook_ok]="Webhook: OK (HTTP %s)."
+
+T_EN[check.webhook_fail]="Webhook: FAILED (HTTP %s)."
+T_FR[check.webhook_fail]="Webhook : ÉCHEC (HTTP %s)."
+T_DE[check.webhook_fail]="Webhook: FEHLGESCHLAGEN (HTTP %s)."
+T_ES[check.webhook_fail]="Webhook: FALLÓ (HTTP %s)."
+T_IT[check.webhook_fail]="Webhook: FALLITO (HTTP %s)."
+
+T_EN[check.webhook_err]="Webhook: FAILED (connection error / unreachable)."
+T_FR[check.webhook_err]="Webhook : ÉCHEC (erreur de connexion / injoignable)."
+T_DE[check.webhook_err]="Webhook: FEHLGESCHLAGEN (Verbindungsfehler / nicht erreichbar)."
+T_ES[check.webhook_err]="Webhook: FALLÓ (error de conexión / inaccesible)."
+T_IT[check.webhook_err]="Webhook: FALLITO (errore di connessione / irraggiungibile)."
+
+T_EN[check.email_off]="E-mail: not configured (NOTIFY_EMAIL empty)."
+T_FR[check.email_off]="E-mail : non configuré (NOTIFY_EMAIL vide)."
+T_DE[check.email_off]="E-Mail: nicht konfiguriert (NOTIFY_EMAIL leer)."
+T_ES[check.email_off]="E-mail: no configurado (NOTIFY_EMAIL vacío)."
+T_IT[check.email_off]="E-mail: non configurato (NOTIFY_EMAIL vuoto)."
+
+T_EN[check.email_no_mta]="E-mail: no MTA found (install mail or sendmail)."
+T_FR[check.email_no_mta]="E-mail : aucun MTA trouvé (installez mail ou sendmail)."
+T_DE[check.email_no_mta]="E-Mail: kein MTA gefunden (mail oder sendmail installieren)."
+T_ES[check.email_no_mta]="E-mail: no se encontró MTA (instale mail o sendmail)."
+T_IT[check.email_no_mta]="E-mail: nessun MTA trovato (installare mail o sendmail)."
+
+T_EN[check.email_sent]="E-mail: handed to the MTA for %s (check the inbox)."
+T_FR[check.email_sent]="E-mail : remis au MTA pour %s (vérifiez la boîte de réception)."
+T_DE[check.email_sent]="E-Mail: an den MTA übergeben für %s (Posteingang prüfen)."
+T_ES[check.email_sent]="E-mail: entregado al MTA para %s (revise la bandeja de entrada)."
+T_IT[check.email_sent]="E-mail: consegnato all'MTA per %s (controllare la posta)."
+
+T_EN[check.email_fail]="E-mail: the MTA rejected the message."
+T_FR[check.email_fail]="E-mail : le MTA a rejeté le message."
+T_DE[check.email_fail]="E-Mail: der MTA hat die Nachricht abgelehnt."
+T_ES[check.email_fail]="E-mail: el MTA rechazó el mensaje."
+T_IT[check.email_fail]="E-mail: l'MTA ha rifiutato il messaggio."
+
+T_EN[check.none_configured]="No notification channel is configured."
+T_FR[check.none_configured]="Aucun canal de notification n'est configuré."
+T_DE[check.none_configured]="Kein Benachrichtigungskanal ist konfiguriert."
+T_ES[check.none_configured]="No hay ningún canal de notificación configurado."
+T_IT[check.none_configured]="Nessun canale di notifica è configurato."
+
+T_EN[check.invalid]="Invalid target: %s. Use: email, webhook, all."
+T_FR[check.invalid]="Cible invalide : %s. Utilisez : email, webhook, all."
+T_DE[check.invalid]="Ungültiges Ziel: %s. Verwenden Sie: email, webhook, all."
+T_ES[check.invalid]="Objetivo inválido: %s. Use: email, webhook, all."
+T_IT[check.invalid]="Destinazione non valida: %s. Usare: email, webhook, all."
+
+T_EN[check.diag]="  ↳ diagnostic: %s"
+T_FR[check.diag]="  ↳ diagnostic : %s"
+T_DE[check.diag]="  ↳ Diagnose: %s"
+T_ES[check.diag]="  ↳ diagnóstico: %s"
+T_IT[check.diag]="  ↳ diagnostica: %s"
+
 # --- Aide : section configuration (/etc/ban_404.conf) ---
 T_EN[help.conf_header]="Configuration: %s (overrides defaults; never overwritten by updates)"
 T_FR[help.conf_header]="Configuration : %s (surcharge les valeurs par défaut ; jamais écrasée par les MAJ)"
@@ -369,11 +465,11 @@ T_DE[help.conf_honeypot_score]="  HONEYPOT_SCORE   Score pro Honeypot-Treffer; >
 T_ES[help.conf_honeypot_score]="  HONEYPOT_SCORE   Score por hit honeypot; >= significa bloqueo inmediato (por defecto 100)."
 T_IT[help.conf_honeypot_score]="  HONEYPOT_SCORE   Punteggio per hit honeypot; >= significa blocco immediato (predefinito 100)."
 
-T_EN[help.conf_webhook]="  WEBHOOK_URL      JSON POST of new bans (Slack/Discord/Teams...); empty = off."
-T_FR[help.conf_webhook]="  WEBHOOK_URL      POST JSON des nouveaux bans (Slack/Discord/Teams...) ; vide = inactif."
-T_DE[help.conf_webhook]="  WEBHOOK_URL      JSON-POST neuer Sperren (Slack/Discord/Teams...); leer = aus."
-T_ES[help.conf_webhook]="  WEBHOOK_URL      POST JSON de nuevos bloqueos (Slack/Discord/Teams...); vacío = inactivo."
-T_IT[help.conf_webhook]="  WEBHOOK_URL      POST JSON dei nuovi blocchi (Slack/Discord/Teams...); vuoto = disattivato."
+T_EN[help.conf_webhook]="  WEBHOOK_URL      JSON POST of new bans (Slack/Discord/Teams/Google Chat...); empty = off."
+T_FR[help.conf_webhook]="  WEBHOOK_URL      POST JSON des nouveaux bans (Slack/Discord/Teams/Google Chat...) ; vide = inactif."
+T_DE[help.conf_webhook]="  WEBHOOK_URL      JSON-POST neuer Sperren (Slack/Discord/Teams/Google Chat...); leer = aus."
+T_ES[help.conf_webhook]="  WEBHOOK_URL      POST JSON de nuevos bloqueos (Slack/Discord/Teams/Google Chat...); vacío = inactivo."
+T_IT[help.conf_webhook]="  WEBHOOK_URL      POST JSON dei nuovi blocchi (Slack/Discord/Teams/Google Chat...); vuoto = disattivato."
 
 T_EN[help.conf_email]="  NOTIFY_EMAIL     E-mail of new bans (needs an MTA: mail/sendmail); empty = off."
 T_FR[help.conf_email]="  NOTIFY_EMAIL     E-mail des nouveaux bans (MTA requis : mail/sendmail) ; vide = inactif."
@@ -573,6 +669,7 @@ show_help() {
     t help.bytimeout
     t help.stats
     t help.summary
+    t help.checknotif
     t help.lang
     t help.version
     t help.help
@@ -668,19 +765,21 @@ json_escape() {
     s="${s//\\/\\\\}"; s="${s//\"/\\\"}"; s="${s//$'\n'/\\n}"; s="${s//$'\t'/\\t}"
     printf '%s' "$s"
 }
+# Construit le corps JSON du webhook selon le service (logique centralisee).
+build_webhook_payload() {  # $1 = texte brut -> imprime le JSON
+    local esc; esc=$(json_escape "$1")
+    # Google Chat n'accepte QUE "text" (rejet 400 des champs inconnus) ; les autres
+    # acceptent "text" (Slack/Mattermost/n8n) et "content" (Discord/Teams).
+    case "$WEBHOOK_URL" in
+        *chat.googleapis.com*) printf '{"text":"%s"}' "$esc" ;;
+        *)                     printf '{"text":"%s","content":"%s"}' "$esc" "$esc" ;;
+    esac
+}
 send_webhook() {  # $1 = texte complet
     [ -z "$WEBHOOK_URL" ] && return 0
     command -v curl >/dev/null 2>&1 || return 0
-    local esc payload; esc=$(json_escape "$1")
-    # Format du payload selon le service : Google Chat n'accepte QUE "text" et rejette
-    # les champs inconnus (400) ; les autres acceptent "text" (Slack/Mattermost/n8n)
-    # et "content" (Discord/Teams).
-    case "$WEBHOOK_URL" in
-        *chat.googleapis.com*) payload="{\"text\":\"$esc\"}" ;;
-        *)                     payload="{\"text\":\"$esc\",\"content\":\"$esc\"}" ;;
-    esac
     curl -fsS -m 15 -H 'Content-Type: application/json' \
-         -X POST -d "$payload" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+         -X POST -d "$(build_webhook_payload "$1")" "$WEBHOOK_URL" >/dev/null 2>&1 || true
 }
 send_email() {  # $1 = sujet, $2 = corps
     [ -z "$NOTIFY_EMAIL" ] && return 0
@@ -770,6 +869,55 @@ do_summary() {
     exit 0
 }
 
+# ---------- --check-notification : test des canaux, avec retour + diagnostic ----------
+# Codes retour des check_* : 0 = OK, 1 = configure mais en echec, 2 = non configure.
+check_webhook() {
+    [ -z "$WEBHOOK_URL" ] && { t check.webhook_off; return 2; }
+    command -v curl >/dev/null 2>&1 || { t check.webhook_nocurl; return 1; }
+    local host code rc tmp body
+    host=$(hostname 2>/dev/null || echo '?')
+    tmp=$(mktemp 2>/dev/null) || tmp=""
+    code=$(curl -sS -m 15 -o "${tmp:-/dev/null}" -w '%{http_code}' -H 'Content-Type: application/json' \
+                -X POST -d "$(build_webhook_payload "$(t check.body "$host")")" "$WEBHOOK_URL" 2>/dev/null); rc=$?
+    body=""; [ -n "$tmp" ] && { body=$(tr -d '\r' < "$tmp" 2>/dev/null | tr '\n' ' ' | head -c 300); rm -f "$tmp"; }
+    if [ "$rc" -ne 0 ]; then t check.webhook_err; [ -n "$body" ] && t check.diag "$body"; return 1; fi
+    case "$code" in
+        2*) t check.webhook_ok "$code"; return 0 ;;
+        *)  t check.webhook_fail "$code"; [ -n "$body" ] && t check.diag "$body"; return 1 ;;
+    esac
+}
+check_email() {
+    [ -z "$NOTIFY_EMAIL" ] && { t check.email_off; return 2; }
+    local host subj body rc tmp err
+    host=$(hostname 2>/dev/null || echo '?')
+    subj=$(t check.subject "$host"); body=$(t check.body "$host")
+    tmp=$(mktemp 2>/dev/null) || tmp=""
+    if command -v mail >/dev/null 2>&1; then
+        if [ -n "$NOTIFY_FROM" ]; then printf '%s\n' "$body" | mail -s "$subj" -r "$NOTIFY_FROM" "$NOTIFY_EMAIL" 2>"${tmp:-/dev/null}"
+        else printf '%s\n' "$body" | mail -s "$subj" "$NOTIFY_EMAIL" 2>"${tmp:-/dev/null}"; fi
+        rc=$?
+    elif command -v sendmail >/dev/null 2>&1; then
+        { printf 'To: %s\n' "$NOTIFY_EMAIL"; [ -n "$NOTIFY_FROM" ] && printf 'From: %s\n' "$NOTIFY_FROM"
+          printf 'Subject: %s\n\n%s\n' "$subj" "$body"; } | sendmail -t 2>"${tmp:-/dev/null}"; rc=$?
+    else
+        t check.email_no_mta; [ -n "$tmp" ] && rm -f "$tmp"; return 1
+    fi
+    err=""; [ -n "$tmp" ] && { err=$(tr '\n' ' ' < "$tmp" 2>/dev/null | head -c 300); rm -f "$tmp"; }
+    if [ "$rc" -eq 0 ]; then t check.email_sent "$NOTIFY_EMAIL"; return 0; fi
+    t check.email_fail; [ -n "$err" ] && t check.diag "$err"; return 1
+}
+check_notification() {  # $1 = email|webhook|all (defaut all)
+    local target="${1:-all}"; target="${target,,}"
+    case "$target" in email|webhook|all) ;; *) t check.invalid "$target"; exit 1 ;; esac
+    t check.header
+    local rc_w=3 rc_e=3
+    case "$target" in webhook|all) check_webhook; rc_w=$? ;; esac
+    case "$target" in email|all)   check_email;   rc_e=$? ;; esac
+    { [ "$rc_w" -eq 1 ] || [ "$rc_e" -eq 1 ]; } && exit 1   # un canal teste a echoue
+    if [ "$rc_w" -ne 0 ] && [ "$rc_e" -ne 0 ]; then t check.none_configured; exit 1; fi
+    exit 0
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run) DRY_RUN=true; shift ;;
@@ -781,6 +929,8 @@ while [[ $# -gt 0 ]]; do
         --list) DO_LIST=true; shift ;;
         --stats) DO_STATS=true; shift ;;
         --summary) do_summary ;;
+        --check-notification) check_notification "${2:-all}" ;;
+        --check-notification=*) check_notification "${1#*=}" ;;
         --version) t version.line "$BAN404_VERSION"; exit 0 ;;
         --help|-h) show_help ;;
         *) t err.unknown_opt "$1"; exit 1 ;;
