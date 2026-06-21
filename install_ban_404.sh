@@ -371,6 +371,7 @@ WHITELIST_IP="127.0.0.1"
 #NOTIFY_EMAIL=""
 #NOTIFY_FROM=""
 #NOTIFY_MIN_BANS=1
+#NOTIFY_BANS=false
 #DAILY_SUMMARY=false
 EOF
     chmod 600 "$CONF_PATH"
@@ -392,7 +393,7 @@ cat > "$UPDATER_PATH" <<'UPD_EOF'
 # a la conf si elle est absente (langue heritee du shell/systeme, sinon en).
 set -u
 
-UPDATER_VERSION="1.2.1"
+UPDATER_VERSION="1.2.2"
 CONF_FILE="/etc/ban_404.conf"
 TARGET="/usr/local/sbin/ban_404.sh"
 SELF="/usr/local/sbin/update_ban_404.sh"
@@ -626,6 +627,7 @@ if [ -f "$CONF_FILE" ]; then
         'NOTIFY_EMAIL #NOTIFY_EMAIL=""'
         'NOTIFY_FROM #NOTIFY_FROM=""'
         'NOTIFY_MIN_BANS #NOTIFY_MIN_BANS=1'
+        'NOTIFY_BANS #NOTIFY_BANS=false'
         'DAILY_SUMMARY #DAILY_SUMMARY=false'
     )
     for _e in "${_OPTVARS[@]}"; do

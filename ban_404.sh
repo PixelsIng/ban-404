@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.4.3"
+BAN404_VERSION="1.4.4"
 
 # Configuration (valeurs par defaut ; surchargees par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -34,6 +34,7 @@ WEBHOOK_URL=""        # POST JSON des nouveaux bans (Slack/Discord/Teams/n8n...)
 NOTIFY_EMAIL=""       # e-mail des nouveaux bans (necessite un MTA : mail/sendmail)
 NOTIFY_FROM=""        # expediteur e-mail (optionnel)
 NOTIFY_MIN_BANS=1     # ne notifier que si AU MOINS N nouveaux bans dans le run
+NOTIFY_BANS=false     # alerte à chaque run quand des IP sont bannies (true pour activer)
 DAILY_SUMMARY=false   # resume quotidien (opt-in) : --summary n'envoie que si =true ET canal configure
 
 # ============================================================================
@@ -489,6 +490,12 @@ T_DE[help.conf_min_bans]="  NOTIFY_MIN_BANS  Nur benachrichtigen bei mindestens 
 T_ES[help.conf_min_bans]="  NOTIFY_MIN_BANS  Notificar solo si hay al menos N nuevos bloqueos en la ejecución (por defecto 1)."
 T_IT[help.conf_min_bans]="  NOTIFY_MIN_BANS  Notificare solo se almeno N nuovi blocchi nell'esecuzione (predefinito 1)."
 
+T_EN[help.conf_notify_bans]="  NOTIFY_BANS      Per-run alert when IPs are banned (default false; true to enable)."
+T_FR[help.conf_notify_bans]="  NOTIFY_BANS      Alerte par run quand des IP sont bannies (défaut false ; true pour activer)."
+T_DE[help.conf_notify_bans]="  NOTIFY_BANS      Pro-Lauf-Warnung, wenn IPs gesperrt werden (Standard false; true zum Aktivieren)."
+T_ES[help.conf_notify_bans]="  NOTIFY_BANS      Alerta por ejecución cuando se bloquean IP (por defecto false; true para activar)."
+T_IT[help.conf_notify_bans]="  NOTIFY_BANS      Avviso a ogni esecuzione quando degli IP vengono bloccati (predefinito false; true per attivare)."
+
 T_EN[help.conf_daily]="  DAILY_SUMMARY    Daily summary (opt-in, default false), via the configured channel."
 T_FR[help.conf_daily]="  DAILY_SUMMARY    Résumé quotidien (opt-in, défaut false), via le canal configuré."
 T_DE[help.conf_daily]="  DAILY_SUMMARY    Tägliche Zusammenfassung (opt-in, Standard false), über den konfigurierten Kanal."
@@ -689,6 +696,7 @@ show_help() {
     t help.conf_email
     t help.conf_from
     t help.conf_min_bans
+    t help.conf_notify_bans
     t help.conf_daily
     t help.conf_advanced
     t help.conf_example_pointer
@@ -1191,8 +1199,11 @@ else
     else
         [ "$VERBOSE" = true ] && t verbose.no_change
     fi
-    # Notification des nouveaux bans (si seuil atteint et canal configure)
-    if [ "${#new_bans[@]}" -gt 0 ] && [ "${#new_bans[@]}" -ge "$NOTIFY_MIN_BANS" ]; then
-        maybe_notify_new_bans
-    fi
+    # Notification des nouveaux bans (si NOTIFY_BANS active, seuil atteint et canal configure)
+    case "$NOTIFY_BANS" in
+        true|1|yes|on)
+            if [ "${#new_bans[@]}" -gt 0 ] && [ "${#new_bans[@]}" -ge "$NOTIFY_MIN_BANS" ]; then
+                maybe_notify_new_bans
+            fi ;;
+    esac
 fi

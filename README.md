@@ -83,6 +83,7 @@ sudo /usr/local/sbin/update_ban_404.sh --force   # redéploie même si le conten
 | `WEBHOOK_URL`     | (vide)      | Si défini : POST JSON des nouveaux bans (Slack/Discord/Teams/n8n/Google Chat…). Tester avec `--check-notification`. |
 | `NOTIFY_EMAIL`    | (vide)      | Si défini : e-mail des nouveaux bans (nécessite un MTA `mail`/`sendmail`). |
 | `NOTIFY_MIN_BANS` | `1`         | Ne notifier que si ≥ N nouveaux bans dans l'exécution. |
+| `NOTIFY_BANS`     | `false`     | Alerte à chaque exécution quand des IP sont bannies. `true` pour l'activer (indépendant du résumé quotidien). |
 | `DAILY_SUMMARY`   | `false`     | Résumé quotidien (opt-in) envoyé via le canal configuré (`cron.daily`). |
 | `REPO_RAW`        | —           | URL *raw* du dépôt (utilisée par le self-updater). |
 

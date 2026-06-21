@@ -35,6 +35,7 @@ WHITELIST_IP="127.0.0.1"
 #NOTIFY_EMAIL=""       # e-mail des nouveaux bans (necessite un MTA : mail/sendmail)
 #NOTIFY_FROM=""        # expediteur e-mail (optionnel)
 #NOTIFY_MIN_BANS=1     # ne notifier que si AU MOINS N nouveaux bans dans le run
+#NOTIFY_BANS=false     # alerte à chaque run quand des IP sont bannies (true pour activer)
 #DAILY_SUMMARY=false   # resume quotidien (opt-in) ; envoye par cron.daily si =true ET canal configure
 
 # --- Motifs de detection (regex awk) — AVANCE : ne surcharger qu'en connaissance de cause ---
