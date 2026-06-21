@@ -12,9 +12,9 @@ REPO_RAW="https://raw.githubusercontent.com/Pixels-Ing/ban-404/main"
 WHITELIST_IP="127.0.0.1"
 
 # Langue des messages (sorties, logs, --help) : en (defaut) | fr | de | es | it.
-# Si absente, le self-updater l'ajoute (langue heritee du shell/systeme, sinon en).
-# Modifiable a la volee :  ban_404.sh --lang de
-BAN404_LANG="en"
+# Laissee commentee => auto-detectee (locale du shell/systeme, sinon en).
+# Decommenter pour figer, ou changer a la volee :  ban_404.sh --lang de
+#BAN404_LANG="en"
 
 # --- Reglages optionnels (decommenter pour surcharger) ---
 #WINDOW=7200          # fenetre glissante en secondes (defaut 2h)
@@ -25,6 +25,10 @@ BAN404_LANG="en"
 
 # --- Whitelist CIDR / sous-reseaux a ne JAMAIS bannir (separes par | ) ---
 #WHITELIST_CIDR="10.0.0.0/8|192.168.0.0/16"
+
+# --- Vhosts a EXCLURE de l'analyse (noms de dossier sous /var/www, separes par | ) ---
+# Les logs de ces vhosts ne sont pas analyses (aucun ban genere depuis leurs 404).
+#EXCLUDE_VHOSTS="staging.exemple.com|interne.exemple.com"
 
 # --- Notifications (vides => desactivees ; messages dans la langue BAN404_LANG) ---
 #WEBHOOK_URL=""        # POST JSON des nouveaux bans (Slack/Discord/Teams/n8n...)

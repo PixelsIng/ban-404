@@ -55,7 +55,8 @@ version via `cron.daily` (sous 24 h). Validation `bash -n` avant bascule : un
 commit cassé n'est jamais déployé. Forcer tout de suite :
 
 ```bash
-sudo /usr/local/sbin/update_ban_404.sh
+sudo /usr/local/sbin/update_ban_404.sh           # récupère la nouveauté si elle existe
+sudo /usr/local/sbin/update_ban_404.sh --force   # redéploie même si le contenu est identique
 ```
 
 > Le self-updater met à jour **`ban_404.sh` ET lui-même** (`update_ban_404.sh`).
@@ -66,7 +67,7 @@ sudo /usr/local/sbin/update_ban_404.sh
 
 | Variable          | Défaut      | Rôle |
 |-------------------|-------------|------|
-| `BAN404_LANG`     | (auto)      | Langue des messages : `en` (défaut), `fr`, `de`, `es`, `it`. Auto-détectée depuis la locale du shell/système ; ajoutée par l'updater si absente. Modifiable via `ban_404.sh --lang <code>`. |
+| `BAN404_LANG`     | (auto)      | Langue des messages : `en` (défaut), `fr`, `de`, `es`, `it`. Auto-détectée depuis la locale du shell/système ; présente **commentée** dans la conf (ajoutée par l'updater si absente). Modifiable via `ban_404.sh --lang <code>` (décommente et fixe). |
 | `WHITELIST_IP`    | `127.0.0.1` | IP jamais bannies (séparées par `\|`, correspondance exacte). |
 | `WINDOW`          | `7200`      | Fenêtre glissante (s) sur laquelle on compte les 404. |
 | `BAN_TIMEOUT`     | `172800`    | Durée du ban (s). |
@@ -74,6 +75,7 @@ sudo /usr/local/sbin/update_ban_404.sh
 | `BAN_THRESHOLD`   | `10`        | Ban si le score dépasse ce seuil dans la fenêtre. |
 | `HONEYPOT_SCORE`  | `100`       | Score ajouté par hit honeypot (≥ ce score ⇒ ban immédiat). |
 | `WHITELIST_CIDR`  | (vide)      | Sous-réseaux jamais bannis (CIDR séparés par `\|`, ex. `10.0.0.0/8`). |
+| `EXCLUDE_VHOSTS`  | (vide)      | Vhosts exclus de l'analyse (noms de dossier sous `/var/www`, séparés par `\|`). Leurs 404 ne génèrent aucun ban. |
 | `WEBHOOK_URL`     | (vide)      | Si défini : POST JSON des nouveaux bans (Slack/Discord/Teams/n8n…). |
 | `NOTIFY_EMAIL`    | (vide)      | Si défini : e-mail des nouveaux bans (nécessite un MTA `mail`/`sendmail`). |
 | `NOTIFY_MIN_BANS` | `1`         | Ne notifier que si ≥ N nouveaux bans dans l'exécution. |
@@ -87,10 +89,13 @@ Les notifications sont émises **dans la langue** `BAN404_LANG`. Réglages avanc
 ## Commandes utiles
 
 ```bash
-sudo /usr/local/sbin/ban_404.sh --list      # IP actuellement bannies (+ timeout)
-sudo /usr/local/sbin/ban_404.sh --stats     # statistiques (bannies, bans/débans 24h, top IP)
-sudo /usr/local/sbin/ban_404.sh --lang de   # changer la langue des messages
-sudo /usr/local/sbin/ban_404.sh --summary   # envoyer le résumé quotidien (si activé)
+sudo /usr/local/sbin/ban_404.sh --list                 # IP bannies (triées par famille, + timeout)
+sudo /usr/local/sbin/ban_404.sh --list --by-timeout    # tri par timeout restant (croissant)
+sudo /usr/local/sbin/ban_404.sh --stats --list         # cumulables en un seul appel
+sudo /usr/local/sbin/ban_404.sh --stats                # statistiques (bannies, bans/débans 24h, top IP)
+sudo /usr/local/sbin/ban_404.sh --lang de              # changer la langue des messages
+sudo /usr/local/sbin/ban_404.sh --summary              # envoyer le résumé quotidien (si activé)
+sudo /usr/local/sbin/update_ban_404.sh --force         # forcer le redéploiement (même si identique)
 ```
 
 ## Prérequis

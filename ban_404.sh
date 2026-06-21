@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.3.0"
+BAN404_VERSION="1.4.0"
 
 # Configuration (valeurs par defaut ; surchargees par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -24,6 +24,10 @@ WHITELIST_IP="127.0.0.1"
 
 # Whitelist CIDR / sous-reseaux a ne JAMAIS bannir (separes par | ), ex: "10.0.0.0/8|192.168.0.0/16"
 WHITELIST_CIDR=""
+
+# Vhosts a EXCLURE de l'analyse (noms de dossier sous BASE_DIR, separes par | ),
+# ex: "staging.exemple.com|interne.exemple.com". Vide => tous les vhosts sont analyses.
+EXCLUDE_VHOSTS=""
 
 # Notifications (optionnel ; vides => desactivees). Messages dans la langue BAN404_LANG.
 WEBHOOK_URL=""        # POST JSON des nouveaux bans (Slack/Discord/Teams/n8n...)
@@ -166,6 +170,12 @@ T_DE[verbose.log_skip]="-> Übersprungen: %s"
 T_ES[verbose.log_skip]="-> Ignorado: %s"
 T_IT[verbose.log_skip]="-> Ignorato: %s"
 
+T_EN[verbose.vhost_excluded]="-> Skipped (excluded vhost): %s"
+T_FR[verbose.vhost_excluded]="-> Ignoré (vhost exclu) : %s"
+T_DE[verbose.vhost_excluded]="-> Übersprungen (ausgeschlossener vhost): %s"
+T_ES[verbose.vhost_excluded]="-> Ignorado (vhost excluido): %s"
+T_IT[verbose.vhost_excluded]="-> Ignorato (vhost escluso): %s"
+
 T_EN[no_valid_files]="=> No valid log file found. Done."
 T_FR[no_valid_files]="=> Aucun fichier de log valide trouvé. Fin."
 T_DE[no_valid_files]="=> Keine gültige Log-Datei gefunden. Ende."
@@ -262,11 +272,17 @@ T_DE[verbose.no_change]="=> Keine Änderung im ipset erforderlich."
 T_ES[verbose.no_change]="=> No se requiere ningún cambio en el ipset."
 T_IT[verbose.no_change]="=> Nessuna modifica richiesta nell'ipset."
 
-T_EN[help.list]="  --list           List currently banned IPs (with remaining timeout)."
-T_FR[help.list]="  --list           Lister les IP actuellement bannies (avec timeout restant)."
-T_DE[help.list]="  --list           Aktuell gesperrte IPs auflisten (mit verbleibendem Timeout)."
-T_ES[help.list]="  --list           Listar las IP actualmente bloqueadas (con timeout restante)."
-T_IT[help.list]="  --list           Elencare gli IP attualmente bloccati (con timeout residuo)."
+T_EN[help.list]="  --list           List banned IPs (timeout left), sorted by IP family."
+T_FR[help.list]="  --list           Lister les IP bannies (timeout restant), triées par famille d'IP."
+T_DE[help.list]="  --list           Gesperrte IPs auflisten (Rest-Timeout), nach IP-Familie sortiert."
+T_ES[help.list]="  --list           Listar las IP bloqueadas (timeout restante), ordenadas por familia de IP."
+T_IT[help.list]="  --list           Elencare gli IP bloccati (timeout residuo), ordinati per famiglia di IP."
+
+T_EN[help.bytimeout]="  --by-timeout     With --list: sort by remaining timeout (ascending)."
+T_FR[help.bytimeout]="  --by-timeout     Avec --list : trier par timeout restant (croissant)."
+T_DE[help.bytimeout]="  --by-timeout     Mit --list: nach verbleibendem Timeout sortieren (aufsteigend)."
+T_ES[help.bytimeout]="  --by-timeout     Con --list: ordenar por timeout restante (ascendente)."
+T_IT[help.bytimeout]="  --by-timeout     Con --list: ordinare per timeout residuo (crescente)."
 
 T_EN[help.stats]="  --stats          Show ban statistics."
 T_FR[help.stats]="  --stats          Afficher les statistiques de ban."
@@ -279,6 +295,115 @@ T_FR[help.summary]="  --summary        Envoyer le résumé quotidien via le cana
 T_DE[help.summary]="  --summary        Tägliche Zusammenfassung über den konfigurierten Kanal senden (opt-in)."
 T_ES[help.summary]="  --summary        Enviar el resumen diario por el canal configurado (opt-in)."
 T_IT[help.summary]="  --summary        Inviare il riepilogo giornaliero tramite il canale configurato (opt-in)."
+
+# --- Aide : section configuration (/etc/ban_404.conf) ---
+T_EN[help.conf_header]="Configuration: %s (overrides defaults; never overwritten by updates)"
+T_FR[help.conf_header]="Configuration : %s (surcharge les valeurs par défaut ; jamais écrasée par les MAJ)"
+T_DE[help.conf_header]="Konfiguration: %s (überschreibt Standardwerte; wird von Updates nie überschrieben)"
+T_ES[help.conf_header]="Configuración: %s (sobrescribe los valores por defecto; nunca sobrescrita por las actualizaciones)"
+T_IT[help.conf_header]="Configurazione: %s (sovrascrive i valori predefiniti; mai sovrascritta dagli aggiornamenti)"
+
+T_EN[help.conf_repo_raw]="  REPO_RAW         Repo raw URL used by the self-updater (required)."
+T_FR[help.conf_repo_raw]="  REPO_RAW         URL raw du dépôt, utilisée par le self-updater (requis)."
+T_DE[help.conf_repo_raw]="  REPO_RAW         Raw-URL des Repos für den Self-Updater (erforderlich)."
+T_ES[help.conf_repo_raw]="  REPO_RAW         URL raw del repositorio para el self-updater (obligatorio)."
+T_IT[help.conf_repo_raw]="  REPO_RAW         URL raw del repository per il self-updater (obbligatorio)."
+
+T_EN[help.conf_whitelist_ip]="  WHITELIST_IP     IPs never banned, exact match, '|'-separated (default 127.0.0.1)."
+T_FR[help.conf_whitelist_ip]="  WHITELIST_IP     IP jamais bannies, exactes, séparées par '|' (défaut 127.0.0.1)."
+T_DE[help.conf_whitelist_ip]="  WHITELIST_IP     Nie gesperrte IPs, exakt, '|'-getrennt (Standard 127.0.0.1)."
+T_ES[help.conf_whitelist_ip]="  WHITELIST_IP     IP nunca bloqueadas, exactas, separadas por '|' (por defecto 127.0.0.1)."
+T_IT[help.conf_whitelist_ip]="  WHITELIST_IP     IP mai bloccati, esatti, separati da '|' (predefinito 127.0.0.1)."
+
+T_EN[help.conf_whitelist_cidr]="  WHITELIST_CIDR   Subnets never banned, CIDR '|'-separated (e.g. 10.0.0.0/8|192.168.0.0/16)."
+T_FR[help.conf_whitelist_cidr]="  WHITELIST_CIDR   Sous-réseaux jamais bannis, CIDR séparés par '|' (ex. 10.0.0.0/8|192.168.0.0/16)."
+T_DE[help.conf_whitelist_cidr]="  WHITELIST_CIDR   Nie gesperrte Subnetze, CIDR '|'-getrennt (z. B. 10.0.0.0/8|192.168.0.0/16)."
+T_ES[help.conf_whitelist_cidr]="  WHITELIST_CIDR   Subredes nunca bloqueadas, CIDR separadas por '|' (ej. 10.0.0.0/8|192.168.0.0/16)."
+T_IT[help.conf_whitelist_cidr]="  WHITELIST_CIDR   Sottoreti mai bloccate, CIDR separati da '|' (es. 10.0.0.0/8|192.168.0.0/16)."
+
+T_EN[help.conf_exclude_vhosts]="  EXCLUDE_VHOSTS   Vhosts excluded from analysis, dir names '|'-separated (e.g. staging.example.com)."
+T_FR[help.conf_exclude_vhosts]="  EXCLUDE_VHOSTS   Vhosts exclus de l'analyse, noms de dossier séparés par '|' (ex. staging.exemple.com)."
+T_DE[help.conf_exclude_vhosts]="  EXCLUDE_VHOSTS   Von der Analyse ausgeschlossene Vhosts, Verzeichnisnamen '|'-getrennt (z. B. staging.example.com)."
+T_ES[help.conf_exclude_vhosts]="  EXCLUDE_VHOSTS   Vhosts excluidos del análisis, nombres de carpeta separados por '|' (ej. staging.example.com)."
+T_IT[help.conf_exclude_vhosts]="  EXCLUDE_VHOSTS   Vhost esclusi dall'analisi, nomi di cartella separati da '|' (es. staging.example.com)."
+
+T_EN[help.conf_lang]="  BAN404_LANG      Message language: en, fr, de, es, it (default: auto-detected)."
+T_FR[help.conf_lang]="  BAN404_LANG      Langue des messages : en, fr, de, es, it (défaut : auto-détectée)."
+T_DE[help.conf_lang]="  BAN404_LANG      Sprache der Meldungen: en, fr, de, es, it (Standard: automatisch)."
+T_ES[help.conf_lang]="  BAN404_LANG      Idioma de los mensajes: en, fr, de, es, it (por defecto: autodetectado)."
+T_IT[help.conf_lang]="  BAN404_LANG      Lingua dei messaggi: en, fr, de, es, it (predefinito: rilevamento automatico)."
+
+T_EN[help.conf_window]="  WINDOW           Sliding window in seconds for counting 404s (default 7200 = 2h)."
+T_FR[help.conf_window]="  WINDOW           Fenêtre glissante en s pour compter les 404 (défaut 7200 = 2h)."
+T_DE[help.conf_window]="  WINDOW           Gleitendes Fenster in s zum Zählen der 404 (Standard 7200 = 2h)."
+T_ES[help.conf_window]="  WINDOW           Ventana deslizante en s para contar los 404 (por defecto 7200 = 2h)."
+T_IT[help.conf_window]="  WINDOW           Finestra scorrevole in s per contare i 404 (predefinito 7200 = 2h)."
+
+T_EN[help.conf_ban_timeout]="  BAN_TIMEOUT      Ban duration in seconds (default 172800 = 48h)."
+T_FR[help.conf_ban_timeout]="  BAN_TIMEOUT      Durée du ban en s (défaut 172800 = 48h)."
+T_DE[help.conf_ban_timeout]="  BAN_TIMEOUT      Sperrdauer in Sekunden (Standard 172800 = 48h)."
+T_ES[help.conf_ban_timeout]="  BAN_TIMEOUT      Duración del bloqueo en s (por defecto 172800 = 48h)."
+T_IT[help.conf_ban_timeout]="  BAN_TIMEOUT      Durata del blocco in s (predefinito 172800 = 48h)."
+
+T_EN[help.conf_tail]="  TAIL_LINES       Lines analyzed per log file (default 50000)."
+T_FR[help.conf_tail]="  TAIL_LINES       Lignes analysées par fichier log (défaut 50000)."
+T_DE[help.conf_tail]="  TAIL_LINES       Analysierte Zeilen pro Log-Datei (Standard 50000)."
+T_ES[help.conf_tail]="  TAIL_LINES       Líneas analizadas por archivo de registro (por defecto 50000)."
+T_IT[help.conf_tail]="  TAIL_LINES       Righe analizzate per file di log (predefinito 50000)."
+
+T_EN[help.conf_threshold]="  BAN_THRESHOLD    Ban when the score exceeds this in the window (default 10)."
+T_FR[help.conf_threshold]="  BAN_THRESHOLD    Ban si le score dépasse ce seuil dans la fenêtre (défaut 10)."
+T_DE[help.conf_threshold]="  BAN_THRESHOLD    Sperre, wenn der Score dies im Fenster überschreitet (Standard 10)."
+T_ES[help.conf_threshold]="  BAN_THRESHOLD    Bloquear si el score supera este umbral en la ventana (por defecto 10)."
+T_IT[help.conf_threshold]="  BAN_THRESHOLD    Blocco se il punteggio supera questa soglia nella finestra (predefinito 10)."
+
+T_EN[help.conf_honeypot_score]="  HONEYPOT_SCORE   Score per honeypot hit; >= this means instant ban (default 100)."
+T_FR[help.conf_honeypot_score]="  HONEYPOT_SCORE   Score par hit honeypot ; >= ce score => ban immédiat (défaut 100)."
+T_DE[help.conf_honeypot_score]="  HONEYPOT_SCORE   Score pro Honeypot-Treffer; >= bedeutet Sofortsperre (Standard 100)."
+T_ES[help.conf_honeypot_score]="  HONEYPOT_SCORE   Score por hit honeypot; >= significa bloqueo inmediato (por defecto 100)."
+T_IT[help.conf_honeypot_score]="  HONEYPOT_SCORE   Punteggio per hit honeypot; >= significa blocco immediato (predefinito 100)."
+
+T_EN[help.conf_webhook]="  WEBHOOK_URL      JSON POST of new bans (Slack/Discord/Teams...); empty = off."
+T_FR[help.conf_webhook]="  WEBHOOK_URL      POST JSON des nouveaux bans (Slack/Discord/Teams...) ; vide = inactif."
+T_DE[help.conf_webhook]="  WEBHOOK_URL      JSON-POST neuer Sperren (Slack/Discord/Teams...); leer = aus."
+T_ES[help.conf_webhook]="  WEBHOOK_URL      POST JSON de nuevos bloqueos (Slack/Discord/Teams...); vacío = inactivo."
+T_IT[help.conf_webhook]="  WEBHOOK_URL      POST JSON dei nuovi blocchi (Slack/Discord/Teams...); vuoto = disattivato."
+
+T_EN[help.conf_email]="  NOTIFY_EMAIL     E-mail of new bans (needs an MTA: mail/sendmail); empty = off."
+T_FR[help.conf_email]="  NOTIFY_EMAIL     E-mail des nouveaux bans (MTA requis : mail/sendmail) ; vide = inactif."
+T_DE[help.conf_email]="  NOTIFY_EMAIL     E-Mail neuer Sperren (MTA nötig: mail/sendmail); leer = aus."
+T_ES[help.conf_email]="  NOTIFY_EMAIL     E-mail de nuevos bloqueos (requiere un MTA: mail/sendmail); vacío = inactivo."
+T_IT[help.conf_email]="  NOTIFY_EMAIL     E-mail dei nuovi blocchi (richiede un MTA: mail/sendmail); vuoto = disattivato."
+
+T_EN[help.conf_from]="  NOTIFY_FROM      E-mail sender (optional)."
+T_FR[help.conf_from]="  NOTIFY_FROM      Expéditeur e-mail (optionnel)."
+T_DE[help.conf_from]="  NOTIFY_FROM      E-Mail-Absender (optional)."
+T_ES[help.conf_from]="  NOTIFY_FROM      Remitente del e-mail (opcional)."
+T_IT[help.conf_from]="  NOTIFY_FROM      Mittente e-mail (opzionale)."
+
+T_EN[help.conf_min_bans]="  NOTIFY_MIN_BANS  Notify only if at least N new bans in the run (default 1)."
+T_FR[help.conf_min_bans]="  NOTIFY_MIN_BANS  Notifier seulement si au moins N nouveaux bans dans le run (défaut 1)."
+T_DE[help.conf_min_bans]="  NOTIFY_MIN_BANS  Nur benachrichtigen bei mindestens N neuen Sperren pro Lauf (Standard 1)."
+T_ES[help.conf_min_bans]="  NOTIFY_MIN_BANS  Notificar solo si hay al menos N nuevos bloqueos en la ejecución (por defecto 1)."
+T_IT[help.conf_min_bans]="  NOTIFY_MIN_BANS  Notificare solo se almeno N nuovi blocchi nell'esecuzione (predefinito 1)."
+
+T_EN[help.conf_daily]="  DAILY_SUMMARY    Daily summary (opt-in, default false), via the configured channel."
+T_FR[help.conf_daily]="  DAILY_SUMMARY    Résumé quotidien (opt-in, défaut false), via le canal configuré."
+T_DE[help.conf_daily]="  DAILY_SUMMARY    Tägliche Zusammenfassung (opt-in, Standard false), über den konfigurierten Kanal."
+T_ES[help.conf_daily]="  DAILY_SUMMARY    Resumen diario (opt-in, por defecto false), por el canal configurado."
+T_IT[help.conf_daily]="  DAILY_SUMMARY    Riepilogo giornaliero (opt-in, predefinito false), tramite il canale configurato."
+
+T_EN[help.conf_advanced]="  Advanced: HONEYPOT_PATTERN / NOISE_PATTERN (awk regex) — override with care."
+T_FR[help.conf_advanced]="  Avancé : HONEYPOT_PATTERN / NOISE_PATTERN (regex awk) — surcharger avec prudence."
+T_DE[help.conf_advanced]="  Erweitert: HONEYPOT_PATTERN / NOISE_PATTERN (awk-Regex) — mit Bedacht ändern."
+T_ES[help.conf_advanced]="  Avanzado: HONEYPOT_PATTERN / NOISE_PATTERN (regex awk) — sobrescribir con cuidado."
+T_IT[help.conf_advanced]="  Avanzato: HONEYPOT_PATTERN / NOISE_PATTERN (regex awk) — sovrascrivere con cautela."
+
+T_EN[help.conf_example_pointer]="  See ban_404.conf.example for full documentation and defaults."
+T_FR[help.conf_example_pointer]="  Voir ban_404.conf.example pour la doc complète et les valeurs par défaut."
+T_DE[help.conf_example_pointer]="  Siehe ban_404.conf.example für vollständige Doku und Standardwerte."
+T_ES[help.conf_example_pointer]="  Vea ban_404.conf.example para la documentación completa y los valores por defecto."
+T_IT[help.conf_example_pointer]="  Vedere ban_404.conf.example per la documentazione completa e i valori predefiniti."
 
 T_EN[list.header]="Currently banned IPs (ipset %s):"
 T_FR[list.header]="IP actuellement bannies (ipset %s) :"
@@ -426,6 +551,9 @@ t() {
 DRY_RUN=false
 SHOW_BLOCKED=false
 VERBOSE=false
+DO_LIST=false
+DO_STATS=false
+LIST_BY_TIMEOUT=false
 
 show_help() {
     t version.line "$BAN404_VERSION"
@@ -436,11 +564,31 @@ show_help() {
     t help.showblocked
     t help.verbose
     t help.list
+    t help.bytimeout
     t help.stats
     t help.summary
     t help.lang
     t help.version
     t help.help
+    echo ""
+    t help.conf_header "$CONF_FILE"
+    t help.conf_repo_raw
+    t help.conf_whitelist_ip
+    t help.conf_whitelist_cidr
+    t help.conf_exclude_vhosts
+    t help.conf_lang
+    t help.conf_window
+    t help.conf_ban_timeout
+    t help.conf_tail
+    t help.conf_threshold
+    t help.conf_honeypot_score
+    t help.conf_webhook
+    t help.conf_email
+    t help.conf_from
+    t help.conf_min_bans
+    t help.conf_daily
+    t help.conf_advanced
+    t help.conf_example_pointer
     exit 0
 }
 
@@ -456,11 +604,12 @@ change_lang() {
     if [ ! -f "$CONF_FILE" ]; then
         t lang.noconf "$CONF_FILE"; exit 1
     fi
-    if grep -q '^BAN404_LANG=' "$CONF_FILE"; then
+    if grep -qE '^[[:space:]]*#?[[:space:]]*BAN404_LANG=' "$CONF_FILE"; then
         local tmp
         tmp=$(mktemp) || { t lang.write_fail "$CONF_FILE"; exit 1; }
         # cat > conserve les permissions/proprietaire de la conf (chmod 600 root)
-        if sed "s/^BAN404_LANG=.*/BAN404_LANG=\"$new_lang\"/" "$CONF_FILE" > "$tmp" && cat "$tmp" > "$CONF_FILE"; then
+        # decommente et/ou remplace la ligne BAN404_LANG (active ou commentee).
+        if sed -E "s/^[[:space:]]*#?[[:space:]]*BAN404_LANG=.*/BAN404_LANG=\"$new_lang\"/" "$CONF_FILE" > "$tmp" && cat "$tmp" > "$CONF_FILE"; then
             rm -f "$tmp"
         else
             rm -f "$tmp"; t lang.write_fail "$CONF_FILE"; exit 1
@@ -493,6 +642,16 @@ in_whitelist_cidr() {  # $1=ip
     local ip="$1" c IFS='|'
     for c in $WHITELIST_CIDR; do
         [ -n "$c" ] && ip_in_cidr "$ip" "$c" && return 0
+    done
+    return 1
+}
+
+# ---------- Exclusion de vhosts (decouverte des logs) ----------
+is_excluded_vhost() {  # $1 = nom du vhost (dossier sous BASE_DIR)
+    [ -z "$EXCLUDE_VHOSTS" ] && return 1
+    local v="$1" e IFS='|'
+    for e in $EXCLUDE_VHOSTS; do
+        [ -n "$e" ] && [ "$v" = "$e" ] && return 0
     done
     return 1
 }
@@ -566,13 +725,28 @@ build_stats_text() {
     fi
 }
 do_list() {
-    local members ip rest to
+    local members ip rest to_raw to fam key
     members=$(ipset list "$IPSET_NAME" 2>/dev/null | awk '/^Members:/{m=1;next} m&&NF{print}')
     t list.header "$IPSET_NAME"
     if [ -z "$members" ]; then t list.empty; return 0; fi
+    # Construit des lignes triables "<clef>\t<ip>\t<timeout>", trie en LC_ALL=C
+    # (ordre deterministe), puis affiche. Tri par defaut : IPv4 d'abord (octets
+    # zero-paddes pour un ordre numerique croissant), puis IPv6. Avec --by-timeout :
+    # tri croissant par timeout residuel.
     printf '%s\n' "$members" | while read -r ip rest; do
-        to=$(printf '%s' "$rest" | sed -n 's/.*timeout \([0-9]*\).*/\1/p')
-        t list.item "$ip" "${to:-?}"
+        to_raw=$(printf '%s' "$rest" | sed -n 's/.*timeout \([0-9]*\).*/\1/p')
+        to="${to_raw:-?}"
+        case "$ip" in *:*) fam=1 ;; *) fam=0 ;; esac
+        if [ "$LIST_BY_TIMEOUT" = true ]; then
+            key=$(printf '%012d' "${to_raw:-0}" 2>/dev/null || printf '%s' "${to_raw:-0}")
+        elif [ "$fam" -eq 0 ]; then
+            key="0_$(printf '%s' "$ip" | awk -F. '{printf "%03d.%03d.%03d.%03d",$1,$2,$3,$4}')"
+        else
+            key="1_$ip"
+        fi
+        printf '%s\t%s\t%s\n' "$key" "$ip" "$to"
+    done | LC_ALL=C sort | while IFS=$'\t' read -r key ip to; do
+        t list.item "$ip" "$to"
     done
 }
 do_summary() {
@@ -590,14 +764,23 @@ while [[ $# -gt 0 ]]; do
         --verbose) VERBOSE=true; shift ;;
         --lang) change_lang "${2:-}" ;;
         --lang=*) change_lang "${1#*=}" ;;
-        --list) do_list; exit 0 ;;
-        --stats) build_stats_text; exit 0 ;;
+        --by-timeout) LIST_BY_TIMEOUT=true; shift ;;
+        --list) DO_LIST=true; shift ;;
+        --stats) DO_STATS=true; shift ;;
         --summary) do_summary ;;
         --version) t version.line "$BAN404_VERSION"; exit 0 ;;
         --help|-h) show_help ;;
         *) t err.unknown_opt "$1"; exit 1 ;;
     esac
 done
+
+# --- Actions de rapport (cumulables) : --stats et/ou --list, puis on sort. ---
+if [ "$DO_STATS" = true ] || [ "$DO_LIST" = true ]; then
+    [ "$DO_STATS" = true ] && build_stats_text
+    [ "$DO_STATS" = true ] && [ "$DO_LIST" = true ] && echo ""
+    [ "$DO_LIST" = true ] && do_list
+    exit 0
+fi
 
 # --- Verrou anti-chevauchement (cron). Inutile en simulation (lecture seule). ---
 if [ "$DRY_RUN" = false ]; then
@@ -661,6 +844,11 @@ fi
 FILES_FOUND=()
 for log_dir in ${BASE_DIR}/*/log/; do
     [ -d "$log_dir" ] || continue
+    vhost="${log_dir%/log/}"; vhost="${vhost##*/}"   # nom du dossier vhost sous BASE_DIR
+    if is_excluded_vhost "$vhost"; then
+        [ "$VERBOSE" = true ] && t verbose.vhost_excluded "$vhost"
+        continue
+    fi
     if [ -f "${log_dir}access.log" ]; then
         FILES_FOUND+=("${log_dir}access.log")
     else

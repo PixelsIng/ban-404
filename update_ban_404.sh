@@ -6,7 +6,7 @@
 # a la conf si elle est absente (langue heritee du shell/systeme, sinon en).
 set -u
 
-UPDATER_VERSION="1.1.0"
+UPDATER_VERSION="1.2.0"
 CONF_FILE="/etc/ban_404.conf"
 TARGET="/usr/local/sbin/ban_404.sh"
 SELF="/usr/local/sbin/update_ban_404.sh"
@@ -39,11 +39,23 @@ T_DE[help.version]="  --version        Version anzeigen und beenden."
 T_ES[help.version]="  --version        Mostrar la versión y salir."
 T_IT[help.version]="  --version        Mostrare la versione e uscire."
 
+T_EN[help.force]="  --force, -f      Redeploy even if files are unchanged."
+T_FR[help.force]="  --force, -f      Redéployer même si les fichiers sont identiques."
+T_DE[help.force]="  --force, -f      Neu ausrollen, auch wenn die Dateien unverändert sind."
+T_ES[help.force]="  --force, -f      Redesplegar aunque los archivos no hayan cambiado."
+T_IT[help.force]="  --force, -f      Ridistribuire anche se i file non sono cambiati."
+
 T_EN[help.help]="  --help, -h       Show this help message."
 T_FR[help.help]="  --help, -h       Afficher ce message d'aide."
 T_DE[help.help]="  --help, -h       Diese Hilfemeldung anzeigen."
 T_ES[help.help]="  --help, -h       Mostrar este mensaje de ayuda."
 T_IT[help.help]="  --help, -h       Mostrare questo messaggio di aiuto."
+
+T_EN[upd.forced]="Force mode enabled (--force): redeploying even if unchanged."
+T_FR[upd.forced]="Mode forcé activé (--force) : redéploiement même si identique."
+T_DE[upd.forced]="Force-Modus aktiv (--force): Neuausrollung auch ohne Änderung."
+T_ES[upd.forced]="Modo forzado activado (--force): redespliegue aunque sin cambios."
+T_IT[upd.forced]="Modalità forzata attiva (--force): ridistribuzione anche se invariato."
 
 T_EN[err.unknown_opt]="Unknown option: %s. Use --help."
 T_FR[err.unknown_opt]="Option inconnue : %s. Utilisez --help."
@@ -159,13 +171,16 @@ show_help() {
     t help.usage "$0"
     echo ""
     t help.options_header
+    t help.force
     t help.version
     t help.help
     exit 0
 }
 
+FORCE=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --force|-f) FORCE=true; shift ;;
         --version) t version.line "$UPDATER_VERSION"; exit 0 ;;
         --help|-h) show_help ;;
         *) t err.unknown_opt "$1"; exit 1 ;;
@@ -191,12 +206,13 @@ case "$REPO_RAW" in
         ;;
 esac
 
-# --- Migration conf : ajoute BAN404_LANG s'il manque (idempotent) ---
-if [ -f "$CONF_FILE" ] && ! grep -q '^BAN404_LANG=' "$CONF_FILE"; then
+# --- Migration conf : ajoute BAN404_LANG (commente, decouvrable) s'il manque ---
+# Idempotent : ne re-ajoute pas si une ligne active OU commentee existe deja.
+if [ -f "$CONF_FILE" ] && ! grep -qE '^[[:space:]]*#?[[:space:]]*BAN404_LANG=' "$CONF_FILE"; then
     _dl=$(detect_lang)
     {
         printf '\n# Langue des messages : en (defaut) | fr | de | es | it\n'
-        printf 'BAN404_LANG="%s"\n' "$_dl"
+        printf '#BAN404_LANG="%s"\n' "$_dl"
     } >> "$CONF_FILE" && log "$(t upd.lang_added "$CONF_FILE" "$_dl")"
 fi
 
@@ -230,8 +246,8 @@ update_file(){
     head -n1 "$tmp" | grep -q '^#!/bin/bash' || { log "$(t upd.shebang "$label")"; rm -f "$tmp"; return 2; }
     bash -n "$tmp" 2>/dev/null || { log "$(t upd.syntax "$label")"; rm -f "$tmp"; return 2; }
 
-    # Deja a jour ?
-    if [ -f "$target" ] && cmp -s "$tmp" "$target"; then rm -f "$tmp"; return 1; fi
+    # Deja a jour ? (--force court-circuite cette verification)
+    if [ "$FORCE" != true ] && [ -f "$target" ] && cmp -s "$tmp" "$target"; then rm -f "$tmp"; return 1; fi
 
     # Bascule atomique (copie dans le meme repertoire que la cible puis mv), avec sauvegarde
     dir=$(dirname "$target")
@@ -248,6 +264,9 @@ update_file(){
     fi
     rm -f "$new" "$tmp"; log "$(t upd.prep_fail "$label")"; return 2
 }
+
+# Trace explicite quand on force (redeploiement meme si identique).
+[ "$FORCE" = true ] && log "$(t upd.forced)"
 
 # 1) Le moteur de detection/ban.
 update_file "ban_404.sh" "$TARGET" "ban_404.sh"
