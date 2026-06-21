@@ -6,7 +6,7 @@
 # a la conf si elle est absente (langue heritee du shell/systeme, sinon en).
 set -u
 
-UPDATER_VERSION="1.2.0"
+UPDATER_VERSION="1.2.1"
 CONF_FILE="/etc/ban_404.conf"
 TARGET="/usr/local/sbin/ban_404.sh"
 SELF="/usr/local/sbin/update_ban_404.sh"
@@ -74,6 +74,12 @@ T_FR[upd.lang_added]="BAN404_LANG ajouté à %s (=%s)."
 T_DE[upd.lang_added]="BAN404_LANG zu %s hinzugefügt (=%s)."
 T_ES[upd.lang_added]="BAN404_LANG añadido a %s (=%s)."
 T_IT[upd.lang_added]="BAN404_LANG aggiunto a %s (=%s)."
+
+T_EN[upd.optvars_added]="Optional settings (commented) added to %s."
+T_FR[upd.optvars_added]="Réglages optionnels (commentés) ajoutés à %s."
+T_DE[upd.optvars_added]="Optionale Einstellungen (auskommentiert) zu %s hinzugefügt."
+T_ES[upd.optvars_added]="Ajustes opcionales (comentados) añadidos a %s."
+T_IT[upd.optvars_added]="Impostazioni opzionali (commentate) aggiunte a %s."
 
 T_EN[upd.dl_fail]="%s: download failed (%s)"
 T_FR[upd.dl_fail]="%s : téléchargement KO (%s)"
@@ -214,6 +220,39 @@ if [ -f "$CONF_FILE" ] && ! grep -qE '^[[:space:]]*#?[[:space:]]*BAN404_LANG=' "
         printf '\n# Langue des messages : en (defaut) | fr | de | es | it\n'
         printf '#BAN404_LANG="%s"\n' "$_dl"
     } >> "$CONF_FILE" && log "$(t upd.lang_added "$CONF_FILE" "$_dl")"
+fi
+
+# --- Migration conf : ajoute les reglages OPTIONNELS manquants (commentes, decouvrables) ---
+# NON destructif et idempotent : on n'ajoute QUE les variables totalement absentes
+# (ni active, ni commentee) ; un reglage deja present (meme commente) est laisse tel quel.
+if [ -f "$CONF_FILE" ]; then
+    _opt_added=0
+    # "nom  ligne-commentee-complete" ; le nom de variable ne contient pas d'espace.
+    _OPTVARS=(
+        'WINDOW #WINDOW=7200'
+        'BAN_TIMEOUT #BAN_TIMEOUT=172800'
+        'TAIL_LINES #TAIL_LINES=50000'
+        'BAN_THRESHOLD #BAN_THRESHOLD=10'
+        'HONEYPOT_SCORE #HONEYPOT_SCORE=100'
+        'WHITELIST_CIDR #WHITELIST_CIDR="10.0.0.0/8|192.168.0.0/16"'
+        'EXCLUDE_VHOSTS #EXCLUDE_VHOSTS="staging.exemple.com|interne.exemple.com"'
+        'WEBHOOK_URL #WEBHOOK_URL=""'
+        'NOTIFY_EMAIL #NOTIFY_EMAIL=""'
+        'NOTIFY_FROM #NOTIFY_FROM=""'
+        'NOTIFY_MIN_BANS #NOTIFY_MIN_BANS=1'
+        'DAILY_SUMMARY #DAILY_SUMMARY=false'
+    )
+    for _e in "${_OPTVARS[@]}"; do
+        _name="${_e%% *}"; _line="${_e#* }"
+        grep -qE "^[[:space:]]*#?[[:space:]]*${_name}=" "$CONF_FILE" && continue
+        if [ "$_opt_added" -eq 0 ]; then
+            grep -qF '# --- Reglages optionnels' "$CONF_FILE" || \
+                printf '\n# --- Reglages optionnels (decommenter pour surcharger) ---\n' >> "$CONF_FILE"
+            _opt_added=1
+        fi
+        printf '%s\n' "$_line" >> "$CONF_FILE"
+    done
+    [ "$_opt_added" -eq 1 ] && log "$(t upd.optvars_added "$CONF_FILE")"
 fi
 
 # Telecharge $1 dans un fichier temporaire dont le chemin est emis sur stdout.

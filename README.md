@@ -62,6 +62,10 @@ sudo /usr/local/sbin/update_ban_404.sh --force   # redéploie même si le conten
 > Le self-updater met à jour **`ban_404.sh` ET lui-même** (`update_ban_404.sh`).
 > Si tu modifies l'installeur ou la structure cron, relance l'installeur sur les
 > serveurs (rare).
+>
+> Le self-updater **ajoute aussi à `/etc/ban_404.conf` les réglages optionnels manquants**
+> (commentés), pour rendre les confs existantes auto-documentées. C'est **non destructif** : il
+> n'écrase jamais un réglage, il ne fait qu'ajouter les variables absentes en commentaire.
 
 ## Réglages (`/etc/ban_404.conf`)
 
