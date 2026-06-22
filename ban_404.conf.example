@@ -36,6 +36,8 @@ WHITELIST_IP="127.0.0.1"
 #BAN_THRESHOLD=10
 #HONEYPOT_SCORE=100
 #HONEYPOT_BAN_TIMEOUT=604800
+#RESOLVE_PTR=false
+#PTR_TIMEOUT=2
 
 # --- CIDR whitelist / subnets to NEVER ban (separated by | ) ---
 # --- Whitelist CIDR / sous-réseaux à ne JAMAIS bannir (séparés par | ) ---

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.4.10"
+BAN404_VERSION="1.4.11"
 
 # Configuration (valeurs par défaut ; surchargées par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -37,6 +37,10 @@ NOTIFY_FROM=""        # expéditeur e-mail (optionnel)
 NOTIFY_MIN_BANS=1     # ne notifier que si AU MOINS N nouveaux bans dans le run
 NOTIFY_BANS=false     # alerte à chaque run quand des IP sont bannies (true pour activer)
 DAILY_SUMMARY=false   # résumé quotidien (opt-in) : --summary n'envoie que si =true ET canal configuré
+
+# Reverse DNS (PTR) des IP affichées par --list/--stats/--summary (opt-in ; le flag --resolve force)
+RESOLVE_PTR=false     # true => résoudre le PTR des IP ; borné par PTR_TIMEOUT pour ne pas bloquer
+PTR_TIMEOUT=2         # délai max par lookup getent (s), borne le coût du reverse
 
 # ============================================================================
 #  i18n — messages multilingues (en, fr, de, es, it). Le code/les commentaires
@@ -309,6 +313,12 @@ T_FR[help.bytimeout]="  --by-timeout     Avec --list : trier par timeout restant
 T_DE[help.bytimeout]="  --by-timeout     Mit --list: nach verbleibendem Timeout sortieren (aufsteigend)."
 T_ES[help.bytimeout]="  --by-timeout     Con --list: ordenar por timeout restante (ascendente)."
 T_IT[help.bytimeout]="  --by-timeout     Con --list: ordinare per timeout residuo (crescente)."
+
+T_EN[help.resolve]="  --resolve        Show reverse DNS (PTR) of IPs in --list/--stats/--summary (opt-in)."
+T_FR[help.resolve]="  --resolve        Afficher le reverse DNS (PTR) des IP dans --list/--stats/--summary (opt-in)."
+T_DE[help.resolve]="  --resolve        Reverse-DNS (PTR) der IPs in --list/--stats/--summary anzeigen (opt-in)."
+T_ES[help.resolve]="  --resolve        Mostrar el DNS inverso (PTR) de las IP en --list/--stats/--summary (opt-in)."
+T_IT[help.resolve]="  --resolve        Mostrare il reverse DNS (PTR) degli IP in --list/--stats/--summary (opt-in)."
 
 T_EN[help.stats]="  --stats          Show ban statistics."
 T_FR[help.stats]="  --stats          Afficher les statistiques de ban."
@@ -726,6 +736,18 @@ T_DE[help.conf_daily]="  DAILY_SUMMARY    Tägliche Zusammenfassung (opt-in, Sta
 T_ES[help.conf_daily]="  DAILY_SUMMARY    Resumen diario (opt-in, por defecto false), por el canal configurado."
 T_IT[help.conf_daily]="  DAILY_SUMMARY    Riepilogo giornaliero (opt-in, predefinito false), tramite il canale configurato."
 
+T_EN[help.conf_resolve]="  RESOLVE_PTR      Resolve reverse DNS (PTR) in --list/--stats/--summary (default false)."
+T_FR[help.conf_resolve]="  RESOLVE_PTR      Résoudre le reverse DNS (PTR) dans --list/--stats/--summary (défaut false)."
+T_DE[help.conf_resolve]="  RESOLVE_PTR      Reverse-DNS (PTR) in --list/--stats/--summary auflösen (Standard false)."
+T_ES[help.conf_resolve]="  RESOLVE_PTR      Resolver el DNS inverso (PTR) en --list/--stats/--summary (por defecto false)."
+T_IT[help.conf_resolve]="  RESOLVE_PTR      Risolvere il reverse DNS (PTR) in --list/--stats/--summary (predefinito false)."
+
+T_EN[help.conf_ptr_timeout]="  PTR_TIMEOUT      Max seconds per reverse-DNS lookup (default 2)."
+T_FR[help.conf_ptr_timeout]="  PTR_TIMEOUT      Délai max par requête reverse DNS, en s (défaut 2)."
+T_DE[help.conf_ptr_timeout]="  PTR_TIMEOUT      Max. Sekunden pro Reverse-DNS-Abfrage (Standard 2)."
+T_ES[help.conf_ptr_timeout]="  PTR_TIMEOUT      Segundos máx. por consulta de DNS inverso (por defecto 2)."
+T_IT[help.conf_ptr_timeout]="  PTR_TIMEOUT      Secondi max per query reverse DNS (predefinito 2)."
+
 T_EN[help.conf_advanced]="  Advanced: HONEYPOT_PATTERN / NOISE_PATTERN (awk regex) — override with care."
 T_FR[help.conf_advanced]="  Avancé : HONEYPOT_PATTERN / NOISE_PATTERN (regex awk) — surcharger avec prudence."
 T_DE[help.conf_advanced]="  Erweitert: HONEYPOT_PATTERN / NOISE_PATTERN (awk-Regex) — mit Bedacht ändern."
@@ -755,6 +777,12 @@ T_FR[list.item]="  %s  (timeout : %s s)"
 T_DE[list.item]="  %s  (Timeout: %s s)"
 T_ES[list.item]="  %s  (timeout: %s s)"
 T_IT[list.item]="  %s  (timeout: %s s)"
+
+T_EN[list.item_rdns]="  %s  (timeout: %s s)  [%s]"
+T_FR[list.item_rdns]="  %s  (timeout : %s s)  [%s]"
+T_DE[list.item_rdns]="  %s  (Timeout: %s s)  [%s]"
+T_ES[list.item_rdns]="  %s  (timeout: %s s)  [%s]"
+T_IT[list.item_rdns]="  %s  (timeout: %s s)  [%s]"
 
 T_EN[stats.header]="=[ ban-404 statistics ]="
 T_FR[stats.header]="=[ Statistiques ban-404 ]="
@@ -791,6 +819,12 @@ T_FR[stats.top_item]="  %s  (%s événement(s))"
 T_DE[stats.top_item]="  %s  (%s Ereignis(se))"
 T_ES[stats.top_item]="  %s  (%s evento(s))"
 T_IT[stats.top_item]="  %s  (%s evento/i)"
+
+T_EN[stats.top_item_rdns]="  %s  (%s event(s))  [%s]"
+T_FR[stats.top_item_rdns]="  %s  (%s événement(s))  [%s]"
+T_DE[stats.top_item_rdns]="  %s  (%s Ereignis(se))  [%s]"
+T_ES[stats.top_item_rdns]="  %s  (%s evento(s))  [%s]"
+T_IT[stats.top_item_rdns]="  %s  (%s evento/i)  [%s]"
 
 T_EN[cidr.unban]="[-] Unbanning IP (whitelisted CIDR): %s (score %s)"
 T_FR[cidr.unban]="[-] Déblocage de l'IP (CIDR en liste blanche) : %s (score %s)"
@@ -953,6 +987,7 @@ show_help() {
     t help.verbose
     t help.list
     t help.bytimeout
+    t help.resolve
     t help.stats
     t help.unban
     t help.summary
@@ -980,6 +1015,8 @@ show_help() {
     t help.conf_min_bans
     t help.conf_notify_bans
     t help.conf_daily
+    t help.conf_resolve
+    t help.conf_ptr_timeout
     t help.conf_advanced
     t help.conf_example_pointer
     exit 0
@@ -1136,8 +1173,20 @@ maybe_notify_new_bans() {
 }
 
 # ---------- --list / --stats / --summary ----------
+# Reverse DNS (PTR) d'une IP, borné par PTR_TIMEOUT pour ne jamais bloquer : getent (libc/nsswitch,
+# aucune dépendance externe, même voie que is_legit_crawler). Imprime le hostname ou rien.
+reverse_dns() {  # $1 = IP
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "${PTR_TIMEOUT:-2}" getent hosts "$1" 2>/dev/null | awk 'NR==1{print $2; exit}'
+    else
+        getent hosts "$1" 2>/dev/null | awk 'NR==1{print $2; exit}'
+    fi
+}
+# Vrai si le reverse doit être résolu (conf RESOLVE_PTR, ou flag --resolve qui force RESOLVE_PTR=true).
+resolve_ptr_on() { case "${RESOLVE_PTR:-}" in true|1|yes|on) return 0 ;; *) return 1 ;; esac; }
+
 build_stats_text() {
-    local banned bans unbans cutoff24 top cnt ip
+    local banned bans unbans cutoff24 top cnt ip rdns
     banned=$(ipset list "$IPSET_NAME" 2>/dev/null | awk '/^Members:/{m=1;next} m&&NF{c++} END{print c+0}')
     cutoff24=$(date -d '24 hours ago' '+%Y-%m-%d %H:%M:%S' 2>/dev/null)
     bans=0; unbans=0
@@ -1155,7 +1204,15 @@ build_stats_text() {
         }' "$LOG_FILE" | sort | uniq -c | sort -rn | head -n 10)
         if [ -n "$top" ]; then
             t stats.top_header
-            while read -r cnt ip; do [ -n "$ip" ] && t stats.top_item "$ip" "$cnt"; done <<< "$top"
+            while read -r cnt ip; do
+                [ -z "$ip" ] && continue
+                if resolve_ptr_on; then
+                    rdns=$(reverse_dns "$ip")
+                    [ -n "$rdns" ] && t stats.top_item_rdns "$ip" "$cnt" "$rdns" || t stats.top_item "$ip" "$cnt"
+                else
+                    t stats.top_item "$ip" "$cnt"
+                fi
+            done <<< "$top"
         fi
     fi
 }
@@ -1186,7 +1243,12 @@ do_list() {
         fi
         printf '%s\t%s\t%s\n' "$key" "$ip" "$to"
     done | LC_ALL=C sort | while IFS=$'\t' read -r key ip to; do
-        t list.item "$ip" "$to"
+        if resolve_ptr_on; then
+            rdns=$(reverse_dns "$ip")
+            [ -n "$rdns" ] && t list.item_rdns "$ip" "$to" "$rdns" || t list.item "$ip" "$to"
+        else
+            t list.item "$ip" "$to"
+        fi
     done
 }
 do_summary() {
@@ -1401,6 +1463,7 @@ while [[ $# -gt 0 ]]; do
         --lang) change_lang "${2:-}" ;;
         --lang=*) change_lang "${1#*=}" ;;
         --by-timeout) LIST_BY_TIMEOUT=true; shift ;;
+        --resolve) RESOLVE_PTR=true; shift ;;
         --list) DO_LIST=true; shift ;;
         --stats) DO_STATS=true; shift ;;
         --summary) do_summary ;;
