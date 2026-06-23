@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.4.13"
+BAN404_VERSION="1.4.14"
 
 # Configuration (valeurs par défaut ; surchargées par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -628,11 +628,35 @@ T_DE[diag.root_skip]="Firewall-Prüfungen übersprungen (root erforderlich)."
 T_ES[diag.root_skip]="Comprobaciones del firewall omitidas (se requiere root)."
 T_IT[diag.root_skip]="Controlli firewall ignorati (root richiesto)."
 
-T_EN[diag.logs]="Logs: %s readable, %s excluded, %s unreadable."
-T_FR[diag.logs]="Logs : %s lisibles, %s exclus, %s illisibles."
-T_DE[diag.logs]="Logs: %s lesbar, %s ausgeschlossen, %s unlesbar."
-T_ES[diag.logs]="Logs: %s legibles, %s excluidos, %s ilegibles."
-T_IT[diag.logs]="Log: %s leggibili, %s esclusi, %s illeggibili."
+T_EN[diag.logs]="Logs: %s active, %s inactive/empty, %s unreadable, %s excluded."
+T_FR[diag.logs]="Logs : %s actifs, %s inactifs/vides, %s illisibles, %s exclus."
+T_DE[diag.logs]="Logs: %s aktiv, %s inaktiv/leer, %s nicht lesbar, %s ausgeschlossen."
+T_ES[diag.logs]="Logs: %s activos, %s inactivos/vacíos, %s ilegibles, %s excluidos."
+T_IT[diag.logs]="Log: %s attivi, %s inattivi/vuoti, %s illeggibili, %s esclusi."
+
+T_EN[diag.log_v_nolog]="   - %s: no access.log (inactive site)"
+T_FR[diag.log_v_nolog]="   - %s : aucun access.log (site inactif)"
+T_DE[diag.log_v_nolog]="   - %s: kein access.log (inaktive Site)"
+T_ES[diag.log_v_nolog]="   - %s: sin access.log (sitio inactivo)"
+T_IT[diag.log_v_nolog]="   - %s: nessun access.log (sito inattivo)"
+
+T_EN[diag.log_v_broken]="   - %s: broken access.log symlink (inactive site)"
+T_FR[diag.log_v_broken]="   - %s : symlink access.log cassé (site inactif)"
+T_DE[diag.log_v_broken]="   - %s: defekter access.log-Symlink (inaktive Site)"
+T_ES[diag.log_v_broken]="   - %s: symlink access.log roto (sitio inactivo)"
+T_IT[diag.log_v_broken]="   - %s: symlink access.log rotto (sito inattivo)"
+
+T_EN[diag.log_v_empty]="   - %s: empty access.log (inactive site)"
+T_FR[diag.log_v_empty]="   - %s : access.log vide (site inactif)"
+T_DE[diag.log_v_empty]="   - %s: leeres access.log (inaktive Site)"
+T_ES[diag.log_v_empty]="   - %s: access.log vacío (sitio inactivo)"
+T_IT[diag.log_v_empty]="   - %s: access.log vuoto (sito inattivo)"
+
+T_EN[diag.log_v_unreadable]="   - %s: access.log present but NOT READABLE (permission)"
+T_FR[diag.log_v_unreadable]="   - %s : access.log présent mais NON LISIBLE (permission)"
+T_DE[diag.log_v_unreadable]="   - %s: access.log vorhanden, aber NICHT LESBAR (Rechte)"
+T_ES[diag.log_v_unreadable]="   - %s: access.log presente pero NO LEGIBLE (permisos)"
+T_IT[diag.log_v_unreadable]="   - %s: access.log presente ma NON LEGGIBILE (permessi)"
 
 T_EN[diag.notify_channels]="Notification channels configured: %s."
 T_FR[diag.notify_channels]="Canaux de notification configurés : %s."
@@ -1371,7 +1395,7 @@ diag_is_on() { case "${1:-}" in true|1|yes|on) return 0 ;; *) return 1 ;; esac; 
 do_diag() {
     local engine="/usr/local/sbin/ban_404.sh" updater="/usr/local/sbin/update_ban_404.sh"
     local upd_ver="" repo_engine repo_upd up n chans
-    local found excluded unreadable log_dir vhost f now mt age_d
+    local active inactive excluded unreadable log_dir vhost f now mt age_d
     t diag.header
 
     # 1. Composants & versions (local)
@@ -1470,19 +1494,29 @@ do_diag() {
     if [ -f /etc/logrotate.d/ban_404 ]; then diag_line ok "$(t diag.present /etc/logrotate.d/ban_404)"
     else diag_line warn "$(t diag.absent /etc/logrotate.d/ban_404)"; fi
 
-    # 6. Découverte des logs (même logique que l'analyse ; purement lecture)
-    found=0; excluded=0; unreadable=0
+    # 6. Découverte des logs (même logique que l'analyse ; purement lecture). On sépare les cas
+    # BÉNINS (site inactif : aucun access.log, symlink cassé, ou fichier vide — fréquent en
+    # ISPConfig où access.log pointe sur le log du jour, absent si le site ne logue plus) du SEUL
+    # vrai problème : un log présent mais NON LISIBLE (permission/ACL). --verbose détaille chaque
+    # dossier fautif pour repérer un éventuel vrai site mal classé.
+    active=0; inactive=0; unreadable=0; excluded=0
     for log_dir in ${BASE_DIR}/*/log/; do
         [ -d "$log_dir" ] || continue
         vhost="${log_dir%/log/}"; vhost="${vhost##*/}"
         if is_excluded_vhost "$vhost"; then excluded=$((excluded + 1)); continue; fi
+        # yesterday-access.log : artefact ISPConfig (symlink vers le log de la veille, souvent
+        # périmé) — jamais le bon fichier à analyser, on l'écarte du fallback.
         if [ -f "${log_dir}access.log" ]; then f="${log_dir}access.log"
-        else f=$(ls -1t "${log_dir}"*access.log 2>/dev/null | head -n 1); fi
-        if [ -n "$f" ] && [ -r "$f" ] && [ -s "$f" ]; then found=$((found + 1))
-        else unreadable=$((unreadable + 1)); fi
+        else f=$(ls -1t "${log_dir}"*access.log 2>/dev/null | grep -v '/yesterday-access\.log$' | head -n 1); fi
+        if   [ -z "$f" ];   then inactive=$((inactive + 1));     [ "$VERBOSE" = true ] && t diag.log_v_nolog "$vhost"
+        elif [ ! -e "$f" ]; then inactive=$((inactive + 1));     [ "$VERBOSE" = true ] && t diag.log_v_broken "$vhost"
+        elif [ ! -r "$f" ]; then unreadable=$((unreadable + 1)); [ "$VERBOSE" = true ] && t diag.log_v_unreadable "$vhost"
+        elif [ ! -s "$f" ]; then inactive=$((inactive + 1));     [ "$VERBOSE" = true ] && t diag.log_v_empty "$vhost"
+        else active=$((active + 1)); fi
     done
-    if [ "$found" -gt 0 ]; then diag_line ok   "$(t diag.logs "$found" "$excluded" "$unreadable")"
-    else                        diag_line warn "$(t diag.logs "$found" "$excluded" "$unreadable")"; fi
+    if   [ "$unreadable" -gt 0 ]; then diag_line warn "$(t diag.logs "$active" "$inactive" "$unreadable" "$excluded")"
+    elif [ "$active" -gt 0 ];     then diag_line ok   "$(t diag.logs "$active" "$inactive" "$unreadable" "$excluded")"
+    else                               diag_line warn "$(t diag.logs "$active" "$inactive" "$unreadable" "$excluded")"; fi
 
     # 7. Cohérence des notifications (config seule, aucun envoi)
     chans=""
@@ -1708,7 +1742,9 @@ for log_dir in ${BASE_DIR}/*/log/; do
     if [ -f "${log_dir}access.log" ]; then
         FILES_FOUND+=("${log_dir}access.log")
     else
-        latest=$(ls -1t "${log_dir}"*access.log 2>/dev/null | head -n 1)
+        # On écarte yesterday-access.log (symlink ISPConfig vers le log de la veille, souvent
+        # périmé) : jamais le bon fichier à analyser.
+        latest=$(ls -1t "${log_dir}"*access.log 2>/dev/null | grep -v '/yesterday-access\.log$' | head -n 1)
         [ -n "$latest" ] && FILES_FOUND+=("$latest")
     fi
 done
