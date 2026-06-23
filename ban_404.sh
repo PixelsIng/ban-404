@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.4.14"
+BAN404_VERSION="1.4.15"
 
 # Configuration (valeurs par défaut ; surchargées par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -550,17 +550,23 @@ T_DE[diag.anacron_ok]="cron.daily-Treiber OK (anacron installiert und geplant)."
 T_ES[diag.anacron_ok]="Driver de cron.daily OK (anacron instalado y planificado)."
 T_IT[diag.anacron_ok]="Driver di cron.daily OK (anacron installato e pianificato)."
 
-T_EN[diag.anacron_inactive]="anacron installed but inactive (timer off) — cron.daily may not fire."
-T_FR[diag.anacron_inactive]="anacron installé mais inactif (timer éteint) — cron.daily peut ne pas se déclencher."
-T_DE[diag.anacron_inactive]="anacron installiert, aber inaktiv (Timer aus) — cron.daily läuft evtl. nicht."
-T_ES[diag.anacron_inactive]="anacron instalado pero inactivo (timer apagado) — cron.daily podría no ejecutarse."
-T_IT[diag.anacron_inactive]="anacron installato ma inattivo (timer spento) — cron.daily potrebbe non avviarsi."
+T_EN[diag.anacron_deferred]="anacron installed but NOT scheduled (timer off) — cron defers cron.daily to it, so it never runs."
+T_FR[diag.anacron_deferred]="anacron installé mais NON planifié (timer éteint) — cron lui délègue cron.daily, qui ne se déclenche donc jamais."
+T_DE[diag.anacron_deferred]="anacron installiert, aber NICHT eingeplant (Timer aus) — cron delegiert cron.daily an es, es läuft also nie."
+T_ES[diag.anacron_deferred]="anacron instalado pero NO planificado (timer apagado) — cron le delega cron.daily, que entonces nunca se ejecuta."
+T_IT[diag.anacron_deferred]="anacron installato ma NON pianificato (timer spento) — cron gli delega cron.daily, che quindi non parte mai."
 
-T_EN[diag.anacron_missing]="anacron not installed — cron.daily may not fire (apt install anacron)."
-T_FR[diag.anacron_missing]="anacron non installé — cron.daily peut ne pas se déclencher (apt install anacron)."
-T_DE[diag.anacron_missing]="anacron nicht installiert — cron.daily läuft evtl. nicht (apt install anacron)."
-T_ES[diag.anacron_missing]="anacron no instalado — cron.daily podría no ejecutarse (apt install anacron)."
-T_IT[diag.anacron_missing]="anacron non installato — cron.daily potrebbe non avviarsi (apt install anacron)."
+T_EN[diag.anacron_absent_ok]="anacron absent — cron.daily handled by cron at 06:25 (no catch-up; anacron recommended)."
+T_FR[diag.anacron_absent_ok]="anacron absent — cron.daily assuré par cron à 06:25 (sans rattrapage ; anacron recommandé)."
+T_DE[diag.anacron_absent_ok]="anacron fehlt — cron.daily von cron um 06:25 ausgeführt (kein Nachholen; anacron empfohlen)."
+T_ES[diag.anacron_absent_ok]="anacron ausente — cron.daily ejecutado por cron a las 06:25 (sin recuperación; anacron recomendado)."
+T_IT[diag.anacron_absent_ok]="anacron assente — cron.daily gestito da cron alle 06:25 (senza recupero; anacron consigliato)."
+
+T_EN[diag.anacron_absent_nocron]="anacron absent and /etc/crontab does not run cron.daily — it will not fire."
+T_FR[diag.anacron_absent_nocron]="anacron absent et /etc/crontab ne lance pas cron.daily — il ne se déclenchera pas."
+T_DE[diag.anacron_absent_nocron]="anacron fehlt und /etc/crontab führt cron.daily nicht aus — es läuft nicht."
+T_ES[diag.anacron_absent_nocron]="anacron ausente y /etc/crontab no ejecuta cron.daily — no se activará."
+T_IT[diag.anacron_absent_nocron]="anacron assente e /etc/crontab non esegue cron.daily — non partirà."
 
 T_EN[diag.summary_cron_ok]="Summary cron present (DAILY_SUMMARY enabled)."
 T_FR[diag.summary_cron_ok]="Cron de résumé présent (DAILY_SUMMARY activé)."
@@ -1436,18 +1442,24 @@ do_diag() {
     else diag_line fail "$(t diag.absent /etc/cron.hourly/ban_404)"; fi
     if [ -f /etc/cron.daily/ban_404_update ]; then diag_line ok "$(t diag.present /etc/cron.daily/ban_404_update)"
     else diag_line warn "$(t diag.absent /etc/cron.daily/ban_404_update)"; fi
-    # Pilote de cron.daily : sur Debian/Ubuntu, /etc/crontab délègue cron.daily à anacron
-    # (test -x /usr/sbin/anacron). anacron absent ou timer inactif => cron.daily ne se déclenche
-    # jamais et les MAJ gèlent (cause réelle observée : anacron non installé).
+    # Pilote de cron.daily. /etc/crontab le délègue à anacron SI présent (test -x /usr/sbin/anacron),
+    # SINON le lance lui-même à 06:25 via run-parts (le `||` est un fallback, pas une dépendance).
+    # Pièges détectés ici :
+    #  - anacron présent mais NON planifié (timer/cron.d inactif) => cron délègue à un anacron mort
+    #    => cron.daily ne part jamais (hourly OK, daily figé : le cas le plus pervers) ;
+    #  - anacron absent ET /etc/crontab sans la ligne cron.daily => personne ne le lance.
+    # anacron absent AVEC la ligne standard est SAIN (cron s'en charge à 06:25, sans rattrapage).
     if command -v anacron >/dev/null 2>&1 || [ -x /usr/sbin/anacron ]; then
         if { command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet anacron.timer 2>/dev/null; } \
            || [ -e /etc/cron.d/anacron ]; then
             diag_line ok "$(t diag.anacron_ok)"
         else
-            diag_line warn "$(t diag.anacron_inactive)"
+            diag_line warn "$(t diag.anacron_deferred)"
         fi
+    elif grep -qsrE 'run-parts.*/etc/cron\.daily' /etc/crontab /etc/cron.d; then
+        diag_line ok "$(t diag.anacron_absent_ok)"
     else
-        diag_line warn "$(t diag.anacron_missing)"
+        diag_line warn "$(t diag.anacron_absent_nocron)"
     fi
     # Fraîcheur : l'updater a-t-il tourné récemment ? (un cron.daily/anacron muet fige le parc)
     if [ -f "$UPDATE_STAMP_FILE" ]; then
