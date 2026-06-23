@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BAN404_VERSION="1.4.11"
+BAN404_VERSION="1.4.12"
 
 # Configuration (valeurs par défaut ; surchargées par /etc/ban_404.conf)
 BASE_DIR="/var/www"
@@ -12,6 +12,7 @@ TAIL_LINES=50000     # On n'analyse que les N dernières lignes de chaque log (b
                      # À augmenter si un site dépasse TAIL_LINES requêtes dans la fenêtre WINDOW.
 LOCK_FILE="/run/ban_404_list.lock"
 LOG_FILE="/var/log/ban_404.log"   # journal (écrit par le wrapper cron) ; lu par --stats/--summary
+UPDATE_STAMP_FILE="/var/lib/ban_404/last_update"   # repère « l'updater a tourné » (écrit par update_ban_404.sh)
 
 # Seuils & motifs de détection (surchargeables par la conf)
 BAN_THRESHOLD=10     # Ban si le score dépasse ce seuil dans la fenêtre.
@@ -205,6 +206,12 @@ T_FR[heal.summary_cron_removed]="[*] Cron de résumé quotidien retiré (DAILY_S
 T_DE[heal.summary_cron_removed]="[*] Tageszusammenfassungs-Cron entfernt (DAILY_SUMMARY deaktiviert): %s"
 T_ES[heal.summary_cron_removed]="[*] Cron de resumen diario eliminado (DAILY_SUMMARY desactivado): %s"
 T_IT[heal.summary_cron_removed]="[*] Cron del riepilogo giornaliero rimosso (DAILY_SUMMARY disattivato): %s"
+
+T_EN[heal.update_triggered]="[*] cron.daily silent — updater triggered from the hourly run."
+T_FR[heal.update_triggered]="[*] cron.daily muet — updater relancé depuis le passage horaire."
+T_DE[heal.update_triggered]="[*] cron.daily stumm — Updater vom stündlichen Lauf ausgelöst."
+T_ES[heal.update_triggered]="[*] cron.daily en silencio — updater lanzado desde la ejecución horaria."
+T_IT[heal.update_triggered]="[*] cron.daily silenzioso — updater avviato dall'esecuzione oraria."
 
 T_EN[no_valid_files]="=> No valid log file found. Done."
 T_FR[no_valid_files]="=> Aucun fichier de log valide trouvé. Fin."
@@ -518,6 +525,24 @@ T_FR[diag.absent]="Absent : %s"
 T_DE[diag.absent]="Fehlt: %s"
 T_ES[diag.absent]="Ausente: %s"
 T_IT[diag.absent]="Assente: %s"
+
+T_EN[diag.update_stale]="Updater not run for %s day(s) — cron.daily/anacron down?"
+T_FR[diag.update_stale]="Updater non exécuté depuis %s jour(s) — cron.daily/anacron en panne ?"
+T_DE[diag.update_stale]="Updater seit %s Tag(en) nicht gelaufen — cron.daily/anacron defekt?"
+T_ES[diag.update_stale]="Updater sin ejecutar desde hace %s día(s) — ¿cron.daily/anacron caído?"
+T_IT[diag.update_stale]="Updater non eseguito da %s giorno/i — cron.daily/anacron guasto?"
+
+T_EN[diag.update_fresh]="Updater ran recently (daily update active)."
+T_FR[diag.update_fresh]="Updater exécuté récemment (MAJ quotidienne active)."
+T_DE[diag.update_fresh]="Updater kürzlich gelaufen (tägliches Update aktiv)."
+T_ES[diag.update_fresh]="Updater ejecutado recientemente (actualización diaria activa)."
+T_IT[diag.update_fresh]="Updater eseguito di recente (aggiornamento giornaliero attivo)."
+
+T_EN[diag.update_never]="No record of an updater run (stamp missing)."
+T_FR[diag.update_never]="Aucune trace d'exécution de l'updater (repère absent)."
+T_DE[diag.update_never]="Kein Nachweis eines Updater-Laufs (Marker fehlt)."
+T_ES[diag.update_never]="Sin rastro de ejecución del updater (marcador ausente)."
+T_IT[diag.update_never]="Nessuna traccia di esecuzione dell'updater (marcatore assente)."
 
 T_EN[diag.summary_cron_ok]="Summary cron present (DAILY_SUMMARY enabled)."
 T_FR[diag.summary_cron_ok]="Cron de résumé présent (DAILY_SUMMARY activé)."
@@ -1328,7 +1353,7 @@ diag_is_on() { case "${1:-}" in true|1|yes|on) return 0 ;; *) return 1 ;; esac; 
 do_diag() {
     local engine="/usr/local/sbin/ban_404.sh" updater="/usr/local/sbin/update_ban_404.sh"
     local upd_ver="" repo_engine repo_upd up n chans
-    local found excluded unreadable log_dir vhost f
+    local found excluded unreadable log_dir vhost f now mt age_d
     t diag.header
 
     # 1. Composants & versions (local)
@@ -1369,6 +1394,15 @@ do_diag() {
     else diag_line fail "$(t diag.absent /etc/cron.hourly/ban_404)"; fi
     if [ -f /etc/cron.daily/ban_404_update ]; then diag_line ok "$(t diag.present /etc/cron.daily/ban_404_update)"
     else diag_line warn "$(t diag.absent /etc/cron.daily/ban_404_update)"; fi
+    # Fraîcheur : l'updater a-t-il tourné récemment ? (un cron.daily/anacron muet fige le parc)
+    if [ -f "$UPDATE_STAMP_FILE" ]; then
+        now=$(date +%s); mt=$(stat -c %Y "$UPDATE_STAMP_FILE" 2>/dev/null || echo 0)
+        age_d=$(( (now - mt) / 86400 ))
+        if [ "$age_d" -ge 2 ]; then diag_line warn "$(t diag.update_stale "$age_d")"
+        else diag_line ok "$(t diag.update_fresh)"; fi
+    else
+        diag_line warn "$(t diag.update_never)"
+    fi
     if diag_is_on "$DAILY_SUMMARY"; then
         if [ -f /etc/cron.daily/ban_404_summary ]; then diag_line ok "$(t diag.summary_cron_ok)"
         else diag_line warn "$(t diag.summary_cron_missing_wanted)"; fi
@@ -1584,6 +1618,30 @@ EOF
     return 0
 }
 
+# --- Filet de sécurité MAJ -----------------------------------------------------
+# Sur certains serveurs, cron.daily (piloté par anacron) cesse de se déclencher
+# silencieusement : l'updater n'est alors JAMAIS appelé et tout fige (moteur +
+# updater + conf). Le moteur, lui, tourne via cron.hourly (piloté DIRECTEMENT par
+# cron, indépendant d'anacron) : on l'utilise pour relancer l'updater EN DERNIER
+# RECOURS. N'ajoute AUCUN cron (réutilise le passage horaire existant) et reste
+# DORMANT sur un serveur sain : il n'agit que si l'updater n'a pas tourné depuis
+# ~36 h (l'updater rafraîchit UPDATE_STAMP_FILE à chaque passage). Le seuil dépasse
+# 24 h pour laisser un cron.daily sain faire foi malgré le jitter d'anacron : le
+# filet ne s'active donc qu'après au moins un jour sauté.
+self_heal_update_trigger() {
+    local upd="/usr/local/sbin/update_ban_404.sh" now mt age
+    [ "$DRY_RUN" = true ] && return 0
+    [ "$(id -u)" -eq 0 ] || return 0
+    [ -n "${REPO_RAW:-}" ] || return 0
+    [ -x "$upd" ] || return 0
+    now=$(date +%s); mt=$(stat -c %Y "$UPDATE_STAMP_FILE" 2>/dev/null || echo 0)
+    age=$(( now - mt ))
+    [ "$age" -lt 129600 ] && return 0      # < ~36 h : cron.daily a (ou a eu) la main
+    t heal.update_triggered                # journalisé via le wrapper cron
+    "$upd" >/dev/null 2>&1 || true         # l'updater journalise lui-même dans /var/log/ban_404.log
+    return 0
+}
+
 if [ "$DRY_RUN" = false ]; then
     ipset list "$IPSET_NAME" &>/dev/null
     if [ $? -ne 0 ]; then
@@ -1774,3 +1832,8 @@ else
             fi ;;
     esac
 fi
+
+# Filet de sécurité MAJ : relance l'updater si cron.daily est resté muet (~36 h). En toute fin de
+# run pour que, si l'updater remplace ce script (bascule atomique = nouvel inode), le process
+# courant — déjà terminé — ne soit pas affecté. Dormant sur un serveur sain ; ne fait rien en dry-run.
+self_heal_update_trigger

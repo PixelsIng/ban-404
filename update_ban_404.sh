@@ -6,11 +6,12 @@
 # à la conf si elle est absente (langue héritée du shell/système, sinon en).
 set -u
 
-UPDATER_VERSION="1.2.6"
+UPDATER_VERSION="1.2.7"
 CONF_FILE="/etc/ban_404.conf"
 TARGET="/usr/local/sbin/ban_404.sh"
 SELF="/usr/local/sbin/update_ban_404.sh"
 LOG="/var/log/ban_404.log"
+UPDATE_STAMP_FILE="/var/lib/ban_404/last_update"   # repère « l'updater a tourné » (lu par le moteur)
 
 # --- i18n : messages multilingues (en, fr, de, es, it). Voir ban_404.sh pour le mécanisme. ---
 declare -A T_EN T_FR T_DE T_ES T_IT
@@ -208,6 +209,11 @@ done
 
 : "${REPO_RAW:=}"
 [ -z "$REPO_RAW" ] && { log "$(t upd.repo_undef "$CONF_FILE")"; exit 0; }
+
+# Trace d'exécution lue par le moteur (« l'updater a tourné »). Touchée même si un download échoue
+# ensuite : prouve que cron.daily s'est bien déclenché, pour que le moteur ne double pas la MAJ
+# (filet self_heal_update_trigger côté ban_404.sh, déclenché si ce repère vieillit > ~36 h).
+mkdir -p "$(dirname "$UPDATE_STAMP_FILE")" 2>/dev/null && : > "$UPDATE_STAMP_FILE" 2>/dev/null
 
 # --- Migration conf : transfert du dépôt PixelsIng -> Pixels-Ing (réécrit REPO_RAW) ---
 # One-shot : retirable une fois le parc migré (le case ne re-matche pas après coup).
